@@ -1,0 +1,9 @@
+{
+  "name": "shelbyvault2",
+  "version": "2.0.0",
+  "dependencies": {
+    "@aptos-labs/ts-sdk": "^2.0.1",
+    "@shelby-protocol/sdk": "latest"
+  },
+  "installCommand": "npm install --legacy-peer-deps"
+}
