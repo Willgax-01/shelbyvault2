@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>ShelbyVault 2.0</title>
+<title>ShelbyVault 2.0 — AI Memory Storage</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root{--bg:#03050A;--sur:#080D14;--card:#0C1520;--b1:#142030;--b2:#1E3048;--green:#00FF88;--blue:#0EA5E9;--purple:#A855F7;--orange:#F97316;--red:#EF4444;--yellow:#EAB308;--cyan:#06B6D4;--text:#CBD5E1;--text2:#64748B;--text3:#334155;--white:#F1F5F9;}
@@ -168,7 +168,6 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
 </style>
 </head>
 <body>
-
 <div class="topbar">
   <div class="brand">
     <div class="brand-logo">🧠</div>
@@ -180,7 +179,6 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
     <div class="status-pill"><div class="dot"></div>SHELBY TESTNET</div>
   </div>
 </div>
-
 <div class="layout">
   <div class="sidebar">
     <div class="s-sec">
@@ -201,13 +199,10 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
       <div class="s-item" data-filter="file"><span class="s-icon" style="color:#06B6D4">●</span>File</div>
     </div>
   </div>
-
   <div class="main">
-    <!-- STORE PANEL -->
     <div class="panel active" id="panel-store">
       <div class="p-title">Store New Memory</div>
       <div class="p-sub">Save AI reasoning, outputs, logs, decisions and files permanently on Shelby Protocol</div>
-
       <div class="type-grid">
         <div class="tcard active" data-type="reasoning"><div class="tcard-icon">🧠</div><div class="tcard-name">Reasoning</div><div class="tcard-desc">Chain of thought</div></div>
         <div class="tcard" data-type="image"><div class="tcard-icon">🎨</div><div class="tcard-name">Image</div><div class="tcard-desc">Generate or upload</div></div>
@@ -217,27 +212,21 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
         <div class="tcard" data-type="checkpoint"><div class="tcard-icon">💾</div><div class="tcard-name">Checkpoint</div><div class="tcard-desc">State snapshot</div></div>
         <div class="tcard" data-type="file"><div class="tcard-icon">📁</div><div class="tcard-name">File</div><div class="tcard-desc">Any file type</div></div>
       </div>
-
       <div class="g2" style="margin-bottom:14px;">
         <div class="field"><label class="flabel">Memory Name / Key</label><input id="memName" type="text" placeholder="e.g. agent-decision-001"/></div>
         <div class="field"><label class="flabel">Agent ID (optional)</label><input id="agentId" type="text" placeholder="e.g. gpt-4, claude-3"/></div>
       </div>
-
       <div id="dynFields"></div>
-
       <div class="field" style="margin-bottom:14px;">
         <label class="flabel">Tags (comma separated)</label>
         <input id="memTags" type="text" placeholder="e.g. production, autonomous, milestone"/>
       </div>
-
       <button class="store-btn" id="storeBtn">
         <span id="btnIcon">🧠</span><span id="btnText">Store Memory on Shelby</span>
       </button>
       <div class="plog" id="plog"></div>
       <div class="rcard" id="rcard"></div>
     </div>
-
-    <!-- VAULT PANEL -->
     <div class="panel" id="panel-vault">
       <div class="p-title">Memory Vault</div>
       <div class="p-sub">All memories stored on Shelby Protocol</div>
@@ -251,4 +240,6 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
         <button class="fb" data-vf="file">📁 File</button>
         <input class="sb" id="vaultSearch" type="text" placeholder="Search..."/>
       </div>
-      <div class="mgrid
+      <div class="mgrid" id="memories"></div>
+    </div>
+    <
