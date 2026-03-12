@@ -1,14 +1,9 @@
 /**
  * /api/upload.js — ShelbyVault 2.0
  * AI Memory Storage for autonomous agents
- * Stores any memory type: reasoning, image, log, decision, research, checkpoint
  */
 
-import { ShelbyNodeClient } from '@shelby-protocol/sdk/node';
-import { Account, Ed25519PrivateKey, Network } from '@aptos-labs/ts-sdk';
-
 const OWNER_ADDRESS = '0x18d06e7fc631aa48ec21e6b66039699e3dd1a17697dc3751eb80c8b00b97ac94';
-const ONE_DAY_MICROS = 86_400_000_000n;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,7 +14,7 @@ export default async function handler(req, res) {
 
   try {
     const {
-      imageBase64,   // base64 payload (image OR text encoded as base64)
+      imageBase64,
       filename,
       memoryType = 'reasoning',
       agentId    = '',
@@ -28,18 +23,19 @@ export default async function handler(req, res) {
       expiryDays = 7,
     } = req.body;
 
-    if (!imageBase64 || !filename) {
-      return res.status(400).json({ error: 'Missing imageBase64 or filename' });
+    if (!filename) {
+      return res.status(400).json({ error: 'Missing filename' });
     }
 
-    // Decode payload
-    const base64Data  = imageBase64.replace(/^data:[^;]+;base64,/, '');
-    const blobData    = Buffer.from(base64Data, 'base64');
+    // Decode payload size
+    let blobSize = 0;
+    if (imageBase64) {
+      const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
+      blobSize = Buffer.from(base64Data, 'base64').byteLength;
+    }
 
-    console.log(`=== ShelbyVault 2.0 — ${memoryType.toUpperCase()} MEMORY ===`);
-    console.log(`Name: ${name} | File: ${filename} | Size: ${blobData.byteLength} bytes`);
-    if (agentId) console.log(`Agent: ${agentId}`);
-    if (tags.length) console.log(`Tags: ${tags.join(', ')}`);
+    console.log(`=== ShelbyVault 2.0 — ${memoryType.toUpperCase()} ===`);
+    console.log(`Name: ${name} | File: ${filename} | Size: ${blobSize} bytes`);
 
     const privateKeyStr = process.env.SHELBY_PRIVATE_KEY;
     const apiKey        = process.env.SHELBY_API_KEY;
@@ -48,34 +44,33 @@ export default async function handler(req, res) {
       console.log('Missing keys — demo mode');
       return res.status(200).json({
         success: true, blobName: filename,
-        size: formatSize(blobData.byteLength),
+        size: formatSize(blobSize),
         memoryType, agentId, tags,
         ...demoShelby(filename)
       });
     }
 
-    // Build signer
+    // Import SDK dynamically to avoid cold-start crash
+    const { ShelbyNodeClient } = await import('@shelby-protocol/sdk/node');
+    const { Account, Ed25519PrivateKey, Network } = await import('@aptos-labs/ts-sdk');
+
     const keyStr = privateKeyStr.startsWith('ed25519-priv-')
       ? privateKeyStr
       : `ed25519-priv-${privateKeyStr}`;
 
     const privateKey = new Ed25519PrivateKey(keyStr);
     const signer     = Account.fromPrivateKey({ privateKey });
+    const client     = new ShelbyNodeClient({ network: Network.TESTNET, apiKey });
 
-    // Init Shelby SDK
-    const client = new ShelbyNodeClient({ network: Network.TESTNET, apiKey });
-
+    const ONE_DAY_MICROS   = 86_400_000_000n;
     const expirationMicros = BigInt(Date.now()) * 1000n + ONE_DAY_MICROS * BigInt(expiryDays);
 
-    console.log('Uploading to Shelby...');
-    const result = await client.upload({
-      blobData,
-      signer,
-      blobName: filename,
-      expirationMicros,
-    });
+    const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
+    const blobData   = Buffer.from(base64Data, 'base64');
 
-    console.log('✅ Upload complete!', JSON.stringify(result));
+    console.log('Uploading to Shelby...');
+    const result = await client.upload({ blobData, signer, blobName: filename, expirationMicros });
+    console.log('✅ Upload complete!');
 
     const txHash = result?.txHash || result?.tx_hash || result?.hash || '';
 
@@ -83,9 +78,7 @@ export default async function handler(req, res) {
       success:     true,
       blobName:    filename,
       size:        formatSize(blobData.byteLength),
-      memoryType,
-      agentId,
-      tags,
+      memoryType, agentId, tags,
       demo:        false,
       txHash,
       explorerUrl: `https://explorer.shelby.xyz/testnet/blobs/${OWNER_ADDRESS}?blobName=${encodeURIComponent(filename)}`,
@@ -94,17 +87,10 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Upload error:', err.message);
-    const { imageBase64, filename, memoryType = 'reasoning' } = req.body || {};
-    const bytes = imageBase64
-      ? Buffer.from(imageBase64.replace(/^data:[^;]+;base64,/, ''), 'base64')
-      : null;
+    const { filename, memoryType = 'reasoning' } = req.body || {};
     return res.status(200).json({
-      success:    true,
-      blobName:   filename,
-      size:       bytes ? formatSize(bytes.byteLength) : '—',
-      memoryType,
-      ...demoShelby(filename),
-      _error:     err.message
+      success: true, blobName: filename, size: '—',
+      memoryType, ...demoShelby(filename), _error: err.message
     });
   }
 }
