@@ -244,7 +244,33 @@
     ::-webkit-scrollbar{width:4px;height:4px;}
     ::-webkit-scrollbar-track{background:transparent;}
     ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
-    @media(max-width:768px){.sidebar{display:none;}.sgrid{grid-template-columns:repeat(2,1fr);}.type-grid{grid-template-columns:repeat(2,1fr);}.row2,.row3{grid-template-columns:1fr;}}
+    @media(max-width:768px){
+      .sidebar{display:none;}
+      .sgrid{grid-template-columns:repeat(2,1fr);}
+      .type-grid{grid-template-columns:repeat(2,1fr);}
+      .row2,.row3{grid-template-columns:1fr;}
+      .main{width:100%;min-height:calc(100vh - 58px - 60px);}
+      .panel{padding:20px 16px 80px;}
+      .body{flex-direction:column;}
+      /* Mobile bottom nav */
+      .mobnav{display:flex!important;}
+    }
+    .mobnav{
+      display:none;
+      position:fixed;bottom:0;left:0;right:0;
+      height:60px;
+      background:rgba(8,13,20,.97);
+      border-top:1px solid var(--b1);
+      backdrop-filter:blur(14px);
+      z-index:50;
+    }
+    .mobnav-item{
+      flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:3px;cursor:pointer;color:var(--text2);transition:color .15s;
+      font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.3px;
+    }
+    .mobnav-item:hover,.mobnav-item.active{color:var(--green);}
+    .mobnav-icon{font-size:18px;}
   </style>
 </head>
 <body>
@@ -259,20 +285,4 @@
     </div>
     <div class="tr">
       <div class="mc-pill">Memories: <span id="memCount">0</span></div>
-      <div class="sp"><div class="sd"></div>SHELBY TESTNET</div>
-    </div>
-  </div>
-
-  <div class="body">
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-      <div class="ssec">
-        <div class="slabel">Navigation</div>
-        <div class="nitem active" data-panel="store" onclick="sw('store')"><span class="nicon">＋</span>Store Memory</div>
-        <div class="nitem" data-panel="vault" onclick="sw('vault')"><span class="nicon">🗄</span>Vault<span class="nc" id="navCount">0</span></div>
-        <div class="nitem" data-panel="stats" onclick="sw('stats')"><span class="nicon">◎</span>Stats</div>
-        <div class="nitem" data-panel="api" onclick="sw('api')"><span class="nicon">⌁</span>Agent API</div>
-      </div>
-      <div class="ssec">
-        <div class="slabel">Types</div>
-        <div class="nitem" onclick="fv('reasoning')"><span class="nicon" style="color:var(--bl
+      <div class="sp"><div class="sd"></div>SHELBY 
