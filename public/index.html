@@ -6,29 +6,40 @@
 <title>ShelbyVault 2.0 — AI Memory Storage</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
-:root{--bg:#03050A;--sur:#080D14;--card:#0C1520;--b1:#142030;--b2:#1E3048;--green:#00FF88;--blue:#0EA5E9;--purple:#A855F7;--orange:#F97316;--red:#EF4444;--yellow:#EAB308;--cyan:#06B6D4;--text:#CBD5E1;--text2:#64748B;--text3:#334155;--white:#F1F5F9;}
+:root{--bg:#03050A;--sur:#080D14;--card:#0C1520;--b1:#142030;--b2:#1E3048;
+--green:#00FF88;--blue:#0EA5E9;--purple:#A855F7;--orange:#F97316;
+--red:#EF4444;--yellow:#EAB308;--cyan:#06B6D4;
+--text:#CBD5E1;--text2:#64748B;--text3:#334155;--white:#F1F5F9;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",sans-serif;min-height:100vh;}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:56px;border-bottom:1px solid var(--b1);background:rgba(3,5,10,.95);position:sticky;top:0;z-index:50;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:56px;
+border-bottom:1px solid var(--b1);background:rgba(3,5,10,.95);position:sticky;top:0;z-index:50;}
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-logo{width:28px;height:28px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.brand-logo{width:28px;height:28px;background:linear-gradient(135deg,var(--green),var(--blue));
+border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
 .brand-name{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:14px;color:var(--white);}
 .brand-name span{color:var(--green);}
-.bv{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--green);background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);padding:2px 7px;border-radius:3px;}
-.status-pill{display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--green);background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.15);padding:4px 12px;border-radius:20px;}
+.bv{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--green);
+background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);padding:2px 7px;border-radius:3px;}
+.status-pill{display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;
+font-size:11px;color:var(--green);background:rgba(0,255,136,.06);
+border:1px solid rgba(0,255,136,.15);padding:4px 12px;border-radius:20px;}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 .mem-count{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text2);}
 .mem-count span{color:var(--white);}
 .layout{display:flex;min-height:calc(100vh - 56px);}
 .sidebar{width:200px;flex-shrink:0;border-right:1px solid var(--b1);padding:16px 0;background:rgba(8,13,20,.5);}
-.s-label{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:0 16px;margin-bottom:8px;display:block;}
+.s-label{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:2px;color:var(--text3);
+text-transform:uppercase;padding:0 16px;margin-bottom:8px;display:block;}
 .s-sec{margin-bottom:20px;}
-.s-item{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:0 6px 2px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border:1px solid transparent;}
+.s-item{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:0 6px 2px;border-radius:6px;
+cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border:1px solid transparent;}
 .s-item:hover{background:var(--b1);color:var(--text);}
 .s-item.active{background:rgba(0,255,136,.08);color:var(--green);border-color:rgba(0,255,136,.15);}
 .s-icon{width:16px;text-align:center;font-size:13px;}
-.s-count{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;background:var(--b2);padding:1px 6px;border-radius:10px;}
+.s-count{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;
+background:var(--b2);padding:1px 6px;border-radius:10px;}
 .s-item.active .s-count{background:rgba(0,255,136,.15);color:var(--green);}
 .main{flex:1;overflow-y:auto;}
 .panel{display:none;padding:24px;}
@@ -36,19 +47,25 @@ body{background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",sans-ser
 .p-title{font-size:20px;font-weight:700;color:var(--white);margin-bottom:4px;}
 .p-sub{font-size:13px;color:var(--text2);margin-bottom:24px;}
 .type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
-.tcard{background:var(--card);border:2px solid var(--b1);border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;transition:all .2s;}
+.tcard{background:var(--card);border:2px solid var(--b1);border-radius:10px;padding:14px 10px;
+cursor:pointer;text-align:center;transition:all .2s;}
 .tcard:hover{border-color:var(--b2);}
 .tcard.active{border-color:var(--green);background:rgba(0,255,136,.05);}
 .tcard-icon{font-size:20px;margin-bottom:5px;}
-.tcard-name{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);}
+.tcard-name{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:700;
+text-transform:uppercase;color:var(--text2);}
 .tcard.active .tcard-name{color:var(--green);}
 .tcard-desc{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.3;}
 .sbox{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:18px;margin-bottom:16px;}
-.sbox-title{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;}
+.sbox-title{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);
+letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;}
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
 .field:last-child{margin-bottom:0;}
-.flabel{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
-input,textarea,select{background:var(--sur);border:1px solid var(--b2);border-radius:7px;color:var(--white);font-family:"IBM Plex Sans",sans-serif;font-size:13px;padding:10px 12px;outline:none;transition:border-color .2s;width:100%;}
+.flabel{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);
+text-transform:uppercase;letter-spacing:.5px;}
+input,textarea{background:var(--sur);border:1px solid var(--b2);border-radius:7px;
+color:var(--white);font-family:"IBM Plex Sans",sans-serif;font-size:13px;
+padding:10px 12px;outline:none;transition:border-color .2s;width:100%;}
 input:focus,textarea:focus{border-color:var(--green);}
 input::placeholder,textarea::placeholder{color:var(--text3);}
 textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;line-height:1.6;}
@@ -58,39 +75,50 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
 .conf-range::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;}
 .conf-val{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--green);width:34px;text-align:right;}
 .status-row{display:flex;gap:6px;}
-.sopt{flex:1;padding:8px 4px;border:1px solid var(--b2);border-radius:6px;background:var(--sur);color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:10px;cursor:pointer;text-align:center;transition:all .15s;}
+.sopt{flex:1;padding:8px 4px;border:1px solid var(--b2);border-radius:6px;background:var(--sur);
+color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:10px;cursor:pointer;text-align:center;}
 .sopt[data-s=success].sel{border-color:var(--green);background:rgba(0,255,136,.08);color:var(--green);}
 .sopt[data-s=warning].sel{border-color:var(--yellow);background:rgba(234,179,8,.08);color:var(--yellow);}
 .sopt[data-s=error].sel{border-color:var(--red);background:rgba(239,68,68,.08);color:var(--red);}
 .sopt[data-s=info].sel{border-color:var(--blue);background:rgba(14,165,233,.08);color:var(--blue);}
 .img-tabs{display:flex;gap:8px;margin-bottom:12px;}
-.img-tab{padding:7px 14px;border:1px solid var(--b2);border-radius:6px;background:var(--sur);color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:11px;cursor:pointer;}
+.img-tab{padding:7px 14px;border:1px solid var(--b2);border-radius:6px;background:var(--sur);
+color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:11px;cursor:pointer;}
 .img-tab.active{border-color:var(--purple);background:rgba(168,85,247,.08);color:var(--purple);}
 .img-pane{display:none;}
 .img-pane.active{display:block;}
-.gen-preview{background:var(--sur);border:1px solid var(--b1);border-radius:8px;min-height:160px;display:flex;align-items:center;justify-content:center;margin-top:10px;overflow:hidden;}
+.gen-preview{background:var(--sur);border:1px solid var(--b1);border-radius:8px;min-height:160px;
+display:flex;align-items:center;justify-content:center;margin-top:10px;overflow:hidden;}
 .gen-preview img{width:100%;display:block;}
 .ph-txt{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text3);text-align:center;padding:16px;}
-.gen-btn{width:100%;margin-top:10px;padding:10px;background:rgba(168,85,247,.12);border:1px solid var(--purple);border-radius:7px;color:var(--purple);font-family:"IBM Plex Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.gen-btn{width:100%;margin-top:10px;padding:10px;background:rgba(168,85,247,.12);
+border:1px solid var(--purple);border-radius:7px;color:var(--purple);
+font-family:"IBM Plex Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
 .gen-btn:disabled{opacity:.4;cursor:not-allowed;}
 .gen-btn.done{background:rgba(0,255,136,.08);border-color:var(--green);color:var(--green);}
-.dropzone{border:2px dashed var(--b2);border-radius:8px;padding:28px 16px;text-align:center;cursor:pointer;position:relative;transition:all .2s;}
+.dropzone{border:2px dashed var(--b2);border-radius:8px;padding:28px 16px;text-align:center;
+cursor:pointer;position:relative;transition:all .2s;}
 .dropzone:hover{border-color:var(--cyan);background:rgba(6,182,212,.03);}
 .dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
 .dz-icon{font-size:28px;margin-bottom:8px;}
 .dz-title{font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px;}
 .dz-sub{font-size:11px;color:var(--text2);}
-.finfo{margin-top:10px;background:var(--sur);border:1px solid var(--b1);border-radius:7px;padding:10px 12px;display:none;align-items:center;gap:10px;}
+.finfo{margin-top:10px;background:var(--sur);border:1px solid var(--b1);border-radius:7px;
+padding:10px 12px;display:none;align-items:center;gap:10px;}
 .finfo.show{display:flex;}
 .fi-icon{font-size:22px;}
 .fi-name{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--white);word-break:break-all;}
 .fi-size{font-size:11px;color:var(--text2);margin-top:2px;}
 .fi-rm{margin-left:auto;cursor:pointer;color:var(--text3);font-size:16px;}
 .fi-rm:hover{color:var(--red);}
-.store-btn{width:100%;padding:14px;background:var(--green);color:#000;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;}
+.store-btn{width:100%;padding:14px;background:var(--green);color:#000;border:none;border-radius:9px;
+font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;
+justify-content:center;gap:8px;transition:all .2s;}
 .store-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,255,136,.2);}
 .store-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
-.plog{margin-top:12px;background:var(--sur);border:1px solid var(--b1);border-radius:7px;padding:12px;font-family:"IBM Plex Mono",monospace;font-size:11px;display:none;max-height:140px;overflow-y:auto;}
+.plog{margin-top:12px;background:var(--sur);border:1px solid var(--b1);border-radius:7px;
+padding:12px;font-family:"IBM Plex Mono",monospace;font-size:11px;display:none;
+max-height:140px;overflow-y:auto;}
 .plog.show{display:block;}
 .ll{display:flex;gap:8px;margin-bottom:4px;}
 .lt{color:var(--text3);}
@@ -98,50 +126,66 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
 .lm.ok{color:var(--green);}
 .lm.err{color:var(--red);}
 .lm.info{color:var(--blue);}
-.rcard{margin-top:12px;background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.2);border-radius:9px;padding:14px;display:none;}
+.rcard{margin-top:12px;background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.2);
+border-radius:9px;padding:14px;display:none;}
 .rcard.show{display:block;}
 .rtitle{font-size:12px;font-weight:600;color:var(--green);margin-bottom:10px;}
 .rrow{display:flex;gap:8px;margin-bottom:6px;}
-.rk{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);width:64px;flex-shrink:0;padding-top:1px;}
+.rk{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);width:64px;flex-shrink:0;}
 .rv{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--white);word-break:break-all;}
 .rlinks{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
-.rl{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:4px 10px;border:1px solid var(--b2);border-radius:4px;color:var(--text2);text-decoration:none;cursor:pointer;transition:all .15s;}
+.rl{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:4px 10px;border:1px solid var(--b2);
+border-radius:4px;color:var(--text2);text-decoration:none;cursor:pointer;transition:all .15s;}
 .rl:hover{border-color:var(--green);color:var(--green);}
 .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
-.fb{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--b2);background:var(--sur);color:var(--text2);cursor:pointer;transition:all .15s;}
+.fb{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:5px 12px;border-radius:20px;
+border:1px solid var(--b2);background:var(--sur);color:var(--text2);cursor:pointer;}
 .fb.active{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.06);}
 .sb{margin-left:auto;width:180px;padding:6px 12px;font-size:12px;}
 .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
-.mc{background:var(--card);border:1px solid var(--b1);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;}
+.mc{background:var(--card);border:1px solid var(--b1);border-radius:10px;overflow:hidden;
+cursor:pointer;transition:all .2s;}
 .mc:hover{border-color:var(--b2);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.4);}
 .mc-img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--sur);}
 .mc-body{padding:12px;}
-.tbadge{display:inline-flex;align-items:center;gap:4px;font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;margin-bottom:8px;text-transform:uppercase;}
-.mname{font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mprev{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:8px;}
+.tbadge{display:inline-flex;align-items:center;gap:4px;font-family:"IBM Plex Mono",monospace;
+font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;margin-bottom:8px;text-transform:uppercase;}
+.mname{font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px;
+overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mprev{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);line-height:1.5;
+overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:8px;}
 .mfoot{display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--b1);}
 .mtime{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text3);}
 .empty-v{grid-column:1/-1;text-align:center;padding:60px;color:var(--text3);}
 .empty-v p{font-family:"IBM Plex Mono",monospace;font-size:12px;margin-top:12px;}
 .sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
 .sc{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:16px;}
-.slbl{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.slbl{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text2);
+text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
 .sval{font-size:24px;font-weight:700;color:var(--white);letter-spacing:-1px;}
 .ssub{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text3);margin-top:4px;}
 .asec{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:18px;margin-bottom:14px;}
 .atitle{font-size:13px;font-weight:700;color:var(--white);margin-bottom:4px;}
 .adesc{font-size:12px;color:var(--text2);margin-bottom:12px;}
-.cblock{background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:14px;font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.7;overflow-x:auto;position:relative;white-space:pre;color:var(--text);}
-.cbtn{position:absolute;top:8px;right:8px;font-family:"IBM Plex Mono",monospace;font-size:10px;padding:3px 8px;background:var(--b1);border:1px solid var(--b2);border-radius:3px;color:var(--text2);cursor:pointer;}
+.cblock{background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:14px;
+font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.7;overflow-x:auto;
+position:relative;white-space:pre;color:var(--text);}
+.cbtn{position:absolute;top:8px;right:8px;font-family:"IBM Plex Mono",monospace;font-size:10px;
+padding:3px 8px;background:var(--b1);border:1px solid var(--b2);border-radius:3px;
+color:var(--text2);cursor:pointer;}
 .cbtn:hover{color:var(--green);}
-.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;}
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+z-index:100;display:none;align-items:center;justify-content:center;padding:16px;}
 .moverlay.open{display:flex;}
-.mdlg{background:var(--card);border:1px solid var(--b2);border-radius:12px;max-width:580px;width:100%;max-height:85vh;overflow-y:auto;}
+.mdlg{background:var(--card);border:1px solid var(--b2);border-radius:12px;
+max-width:580px;width:100%;max-height:85vh;overflow-y:auto;}
 .mhdr{padding:16px 20px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
 .mbdy{padding:20px;}
 .mclose{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;line-height:1;}
 .modal-img{width:100%;border-radius:7px;margin-bottom:14px;}
-.mcontent{font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.7;color:var(--text);background:var(--bg);padding:12px;border-radius:7px;border:1px solid var(--b1);white-space:pre-wrap;word-break:break-word;max-height:240px;overflow-y:auto;margin-bottom:14px;}
+.mcontent{font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.7;color:var(--text);
+background:var(--bg);padding:12px;border-radius:7px;border:1px solid var(--b1);
+white-space:pre-wrap;word-break:break-word;max-height:240px;overflow-y:auto;margin-bottom:14px;}
 .t-reasoning{background:rgba(14,165,233,.12);color:#0EA5E9;border:1px solid rgba(14,165,233,.3);}
 .t-image{background:rgba(168,85,247,.12);color:#A855F7;border:1px solid rgba(168,85,247,.3);}
 .t-log{background:rgba(0,255,136,.12);color:#00FF88;border:1px solid rgba(0,255,136,.3);}
@@ -149,21 +193,19 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
 .t-research{background:rgba(234,179,8,.12);color:#EAB308;border:1px solid rgba(234,179,8,.3);}
 .t-checkpoint{background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.3);}
 .t-file{background:rgba(6,182,212,.12);color:#06B6D4;border:1px solid rgba(6,182,212,.3);}
-.mobnav{display:none;position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(8,13,20,.97);border-top:1px solid var(--b1);z-index:50;}
+.mobnav{display:none;position:fixed;bottom:0;left:0;right:0;height:58px;
+background:rgba(8,13,20,.97);border-top:1px solid var(--b1);z-index:50;}
 .mobnav-inner{display:flex;height:100%;}
-.mni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:9px;transition:color .15s;}
+.mni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:2px;cursor:pointer;color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:9px;}
 .mni.active,.mni:hover{color:var(--green);}
 .mni-icon{font-size:17px;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
 @media(max-width:768px){
-  .sidebar{display:none;}
-  .mobnav{display:block;}
-  .main{padding-bottom:60px;}
-  .panel{padding:16px 14px;}
-  .type-grid{grid-template-columns:repeat(2,1fr);}
-  .g2{grid-template-columns:1fr;}
-  .sgrid{grid-template-columns:repeat(2,1fr);}
+  .sidebar{display:none;} .mobnav{display:block;} .main{padding-bottom:60px;}
+  .panel{padding:16px 14px;} .type-grid{grid-template-columns:repeat(2,1fr);}
+  .g2{grid-template-columns:1fr;} .sgrid{grid-template-columns:repeat(2,1fr);}
 }
 </style>
 </head>
@@ -242,4 +284,458 @@ textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;li
       </div>
       <div class="mgrid" id="memories"></div>
     </div>
-    <
+    <div class="panel" id="panel-stats">
+      <div class="p-title">Vault Statistics</div>
+      <div class="p-sub">Overview of your AI memory storage</div>
+      <div class="sgrid" id="statsGrid"></div>
+      <div class="asec">
+        <div class="atitle">Storage Address</div>
+        <div class="adesc">Your Shelby wallet on Aptos Testnet</div>
+        <div class="cblock">0x18d06e7fc631aa48ec21e6b66039699e3dd1a17697dc3751eb80c8b00b97ac94</div>
+      </div>
+    </div>
+    <div class="panel" id="panel-api">
+      <div class="p-title">Agent API</div>
+      <div class="p-sub">Let any AI agent store memories via HTTP POST</div>
+      <div class="asec">
+        <div class="atitle">POST /api/upload — JavaScript</div>
+        <div class="adesc">Works with LangChain, AutoGen, CrewAI, custom agents</div>
+        <div class="cblock" id="code1"><button class="cbtn" data-copy="code1">copy</button>fetch('https://shelbyvault2.vercel.app/api/upload', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'agent-decision-001',
+    memoryType: 'decision',
+    imageBase64: 'data:text/plain;base64,' + btoa(content),
+    filename: 'decision-001.txt',
+    agentId: 'my-agent',
+    tags: ['production']
+  })
+})</div>
+      </div>
+      <div class="asec">
+        <div class="atitle">Python</div>
+        <div class="cblock" id="code2"><button class="cbtn" data-copy="code2">copy</button>import requests, base64
+
+requests.post('https://shelbyvault2.vercel.app/api/upload', json={
+  'name': f'reasoning-{agent_id}',
+  'memoryType': 'reasoning',
+  'imageBase64': 'data:text/plain;base64,' + base64.b64encode(content.encode()).decode(),
+  'filename': f'reasoning-{agent_id}.txt',
+  'agentId': agent_id,
+  'tags': ['autonomous']
+})</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="mobnav">
+  <div class="mobnav-inner">
+    <div class="mni active" data-panel="store"><div class="mni-icon">+</div>Store</div>
+    <div class="mni" data-panel="vault"><div class="mni-icon">🗄</div>Vault</div>
+    <div class="mni" data-panel="stats"><div class="mni-icon">○</div>Stats</div>
+    <div class="mni" data-panel="api"><div class="mni-icon">⌁</div>API</div>
+  </div>
+</div>
+<div class="moverlay" id="moverlay">
+  <div class="mdlg">
+    <div class="mhdr">
+      <div id="mhdrContent"></div>
+      <button class="mclose" id="mcloseBtn">✕</button>
+    </div>
+    <div class="mbdy" id="mbdy"></div>
+  </div>
+</div>
+<script>
+var mems = [];
+var curType = "reasoning";
+var vf = "all";
+var genB64 = null;
+var fileB64 = null;
+var fileName = null;
+var logStatus = "success";
+
+var TYPES = {
+  reasoning:  { icon: "🧠", label: "Store Reasoning" },
+  image:      { icon: "🎨", label: "Store Image" },
+  log:        { icon: "📋", label: "Store Log" },
+  decision:   { icon: "⚡", label: "Store Decision" },
+  research:   { icon: "🔬", label: "Store Research" },
+  checkpoint: { icon: "💾", label: "Store Checkpoint" },
+  file:       { icon: "📁", label: "Store File" }
+};
+
+try { mems = JSON.parse(localStorage.getItem("sv2") || "[]"); } catch(e) { mems = []; }
+
+document.querySelectorAll("[data-panel]").forEach(function(el) {
+  el.addEventListener("click", function() { goPanel(el.getAttribute("data-panel")); });
+});
+document.querySelectorAll("[data-filter]").forEach(function(el) {
+  el.addEventListener("click", function() { vf = el.getAttribute("data-filter"); goPanel("vault"); });
+});
+document.querySelectorAll("[data-vf]").forEach(function(el) {
+  el.addEventListener("click", function() {
+    vf = el.getAttribute("data-vf");
+    document.querySelectorAll("[data-vf]").forEach(function(b) { b.classList.remove("active"); });
+    el.classList.add("active");
+    renderVault();
+  });
+});
+document.getElementById("vaultSearch").addEventListener("input", function() { renderVault(); });
+document.querySelectorAll(".tcard").forEach(function(el) {
+  el.addEventListener("click", function() {
+    document.querySelectorAll(".tcard").forEach(function(c) { c.classList.remove("active"); });
+    el.classList.add("active");
+    curType = el.getAttribute("data-type");
+    genB64 = null; fileB64 = null; fileName = null;
+    document.getElementById("btnIcon").textContent = TYPES[curType].icon;
+    document.getElementById("btnText").textContent = TYPES[curType].label;
+    buildDynFields();
+    document.getElementById("plog").classList.remove("show");
+    document.getElementById("rcard").classList.remove("show");
+  });
+});
+document.getElementById("storeBtn").addEventListener("click", storeMemory);
+document.querySelectorAll("[data-copy]").forEach(function(el) {
+  el.addEventListener("click", function() {
+    var id = el.getAttribute("data-copy");
+    var text = document.getElementById(id).innerText.replace(/^copy\n?|^copied!\n?/, "").trim();
+    navigator.clipboard.writeText(text);
+    el.textContent = "copied!";
+    setTimeout(function() { el.textContent = "copy"; }, 1500);
+  });
+});
+document.getElementById("mcloseBtn").addEventListener("click", closeModal);
+document.getElementById("moverlay").addEventListener("click", function(e) {
+  if (e.target.id === "moverlay") closeModal();
+});
+
+function goPanel(name) {
+  document.querySelectorAll(".panel").forEach(function(p) { p.classList.remove("active"); });
+  document.querySelectorAll("[data-panel]").forEach(function(el) { el.classList.remove("active"); });
+  var panel = document.getElementById("panel-" + name);
+  if (panel) panel.classList.add("active");
+  document.querySelectorAll("[data-panel=" + name + "]").forEach(function(el) { el.classList.add("active"); });
+  if (name === "vault") renderVault();
+  if (name === "stats") renderStats();
+}
+
+function buildDynFields() {
+  var el = document.getElementById("dynFields");
+  el.innerHTML = "";
+  var box = document.createElement("div");
+  box.className = "sbox";
+
+  if (curType === "reasoning") {
+    box.innerHTML = "<div class=\"sbox-title\">Reasoning Fields</div>"+ "<div class=\"field\"><label class=\"flabel\">Chain of Thought</label>"+ "<textarea id=\"f1\" rows=\"5\" placeholder=\"Write out the full reasoning process...\"></textarea></div>"+ "<div class=\"g2\" style=\"margin-top:12px;\">"+ "<div class=\"field\"><label class=\"flabel\">Conclusion</label>"+ "<input id=\"f2\" type=\"text\" placeholder=\"Final conclusion reached\"/></div>"+ "<div class=\"field\"><label class=\"flabel\">Confidence</label>"+ "<div class=\"conf-row\"><input type=\"range\" class=\"conf-range\" id=\"conf1\" min=\"0\" max=\"100\" value=\"80\"/>"+ "<span class=\"conf-val\" id=\"cv1\">80%</span></div></div></div>";
+
+  } else if (curType === "image") {
+    box.innerHTML = "<div class=\"sbox-title\">Image Source</div>"+ "<div class=\"img-tabs\">"+ "<div class=\"img-tab active\" id=\"tab-gen\">Generate with AI</div>"+ "<div class=\"img-tab\" id=\"tab-upload\">Upload local file</div></div>"+ "<div class=\"img-pane active\" id=\"imgp-gen\">"+ "<div class=\"field\"><label class=\"flabel\">Image Prompt</label>"+ "<textarea id=\"f1\" rows=\"3\" placeholder=\"Describe the image to generate...\"></textarea></div>"+ "<button class=\"gen-btn\" id=\"genBtn\">Generate with Seedream 3.0</button>"+ "<div class=\"gen-preview\" id=\"genPreview\"><div class=\"ph-txt\">Generated image appears here</div></div></div>"+ "<div class=\"img-pane\" id=\"imgp-upload\">"+ "<div class=\"dropzone\"><input type=\"file\" id=\"imgFileInput\" accept=\"image/*\"/>"+ "<div class=\"dz-icon\">&#x1F5BC;</div><div class=\"dz-title\">Drop image or click</div>"+ "<div class=\"dz-sub\">PNG, JPG, GIF, WEBP</div></div>"+ "<div class=\"finfo\" id=\"imgInfo\"></div></div>"+ "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">Description (optional)</label>"+ "<input id=\"f2\" type=\"text\" placeholder=\"What does this image represent?\"/></div>";
+
+  } else if (curType === "log") {
+    box.innerHTML = "<div class=\"sbox-title\">Log Fields</div>"+ "<div class=\"field\"><label class=\"flabel\">Event / Message</label>"+ "<textarea id=\"f1\" rows=\"4\" placeholder=\"Describe what happened...\"></textarea></div>"+ "<div class=\"g2\" style=\"margin-top:12px;\"><div class=\"field\"><label class=\"flabel\">Status</label>"+ "<div class=\"status-row\">"+ "<div class=\"sopt sel\" data-s=\"success\">Success</div>"+ "<div class=\"sopt\" data-s=\"warning\">Warning</div>"+ "<div class=\"sopt\" data-s=\"error\">Error</div>"+ "<div class=\"sopt\" data-s=\"info\">Info</div></div></div>"+ "<div class=\"field\"><label class=\"flabel\">Timestamp</label>"+ "<input id=\"f2\" type=\"text\"/></div></div>";
+
+  } else if (curType === "decision") {
+    box.innerHTML = "<div class=\"sbox-title\">Decision Fields</div>"+ "<div class=\"field\"><label class=\"flabel\">What was decided</label>"+ "<input id=\"f1\" type=\"text\" placeholder=\"The decision that was made\"/></div>"+ "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">Why &mdash; Reasoning</label>"+ "<textarea id=\"f2\" rows=\"3\" placeholder=\"Explain the reasoning...\"></textarea></div>"+ "<div class=\"g2\" style=\"margin-top:12px;\">"+ "<div class=\"field\"><label class=\"flabel\">Alternatives Considered</label>"+ "<input id=\"f3\" type=\"text\" placeholder=\"Option A, Option B...\"/></div>"+ "<div class=\"field\"><label class=\"flabel\">Confidence</label>"+ "<div class=\"conf-row\"><input type=\"range\" class=\"conf-range\" id=\"conf1\" min=\"0\" max=\"100\" value=\"75\"/>"+ "<span class=\"conf-val\" id=\"cv1\">75%</span></div></div></div>";
+
+  } else if (curType === "research") {
+    box.innerHTML = "<div class=\"sbox-title\">Research Fields</div>"+ "<div class=\"field\"><label class=\"flabel\">Topic</label>"+ "<input id=\"f1\" type=\"text\" placeholder=\"What was researched\"/></div>"+ "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">Findings</label>"+ "<textarea id=\"f2\" rows=\"4\" placeholder=\"Key findings, data points...\"></textarea></div>"+ "<div class=\"g2\" style=\"margin-top:12px;\">"+ "<div class=\"field\"><label class=\"flabel\">Sources</label>"+ "<textarea id=\"f3\" rows=\"3\" placeholder=\"URLs, papers...\"></textarea></div>"+ "<div class=\"field\"><label class=\"flabel\">Key Takeaways</label>"+ "<textarea id=\"f4\" rows=\"3\" placeholder=\"TL;DR...\"></textarea></div></div>";
+
+  } else if (curType === "checkpoint") {
+    box.innerHTML = "<div class=\"sbox-title\">Checkpoint Fields</div>"+ "<div class=\"g2\"><div class=\"field\"><label class=\"flabel\">Model / Agent Name</label>"+ "<input id=\"f1\" type=\"text\" placeholder=\"e.g. gpt-4\"/></div>"+ "<div class=\"field\"><label class=\"flabel\">Version</label>"+ "<input id=\"f2\" type=\"text\" placeholder=\"e.g. v1.2.3\"/></div></div>"+ "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">State Description</label>"+ "<textarea id=\"f3\" rows=\"3\" placeholder=\"Current state, metrics...\"></textarea></div>"+ "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">Notes</label>"+ "<input id=\"f4\" type=\"text\" placeholder=\"Additional notes\"/></div>";
+
+  } else if (curType === "file") {
+    box.innerHTML = "<div class=\"sbox-title\">File Upload</div>"+ "<div class=\"dropzone\"><input type=\"file\" id=\"fileInput\"/>"+ "<div class=\"dz-icon\">&#x1F4C1;</div><div class=\"dz-title\">Drop any file or click</div>"+ "<div class=\"dz-sub\">Image, video, audio, PDF, JSON, ZIP...</div></div>"+ "<div class=\"finfo\" id=\"fileInfo\"></div>"+ "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">Description (optional)</label>"+ "<input id=\"f1\" type=\"text\" placeholder=\"What is this file?\"/></div>";
+  }
+
+  el.appendChild(box);
+
+  var conf = document.getElementById("conf1");
+  if (conf) conf.addEventListener("input", function() {
+    var cv = document.getElementById("cv1");
+    if (cv) cv.textContent = conf.value + "%";
+  });
+
+  var f2 = document.getElementById("f2");
+  if (curType === "log" && f2) f2.value = new Date().toISOString().slice(0,19).replace("T", " ");
+
+  var tabGen = document.getElementById("tab-gen");
+  if (tabGen) {
+    tabGen.addEventListener("click", function() { switchImgTab("gen"); });
+    document.getElementById("tab-upload").addEventListener("click", function() { switchImgTab("upload"); });
+  }
+  var genBtn = document.getElementById("genBtn");
+  if (genBtn) genBtn.addEventListener("click", doGenerate);
+  var imgInput = document.getElementById("imgFileInput");
+  if (imgInput) imgInput.addEventListener("change", function() { handleImg(imgInput); });
+  var fileInput = document.getElementById("fileInput");
+  if (fileInput) fileInput.addEventListener("change", function() { handleFile(fileInput); });
+  document.querySelectorAll(".sopt").forEach(function(opt) {
+    opt.addEventListener("click", function() {
+      document.querySelectorAll(".sopt").forEach(function(o) { o.classList.remove("sel"); });
+      opt.classList.add("sel");
+      logStatus = opt.getAttribute("data-s");
+    });
+  });
+}
+
+function switchImgTab(tab) {
+  var gen = document.getElementById("imgp-gen");
+  var upl = document.getElementById("imgp-upload");
+  if (!gen) return;
+  gen.classList.toggle("active", tab === "gen");
+  upl.classList.toggle("active", tab === "upload");
+  document.getElementById("tab-gen").classList.toggle("active", tab === "gen");
+  document.getElementById("tab-upload").classList.toggle("active", tab === "upload");
+  genB64 = null;
+}
+
+function doGenerate() {
+  var f1 = document.getElementById("f1");
+  if (!f1 || !f1.value.trim()) { alert("Enter a prompt first"); return; }
+  var btn = document.getElementById("genBtn");
+  var preview = document.getElementById("genPreview");
+  btn.disabled = true;
+  btn.textContent = "Generating...";
+  preview.innerHTML = "<div class=\"ph-txt\">Generating with Seedream 3.0...</div>";
+  if (typeof puter === "undefined") {
+    btn.disabled = false; btn.textContent = "Generate with Seedream 3.0";
+    alert("Puter not loaded yet, try again"); return;
+  }
+  puter.ai.txt2img(f1.value.trim(), { model: "ByteDance-Seed/Seedream-3.0", provider: "together-ai", width: 1024, height: 1024 })
+    .then(function(res) {
+      var url = typeof res === "string" ? res : (res && (res.url || res.src)) || null;
+      if (!url && res instanceof Blob) url = URL.createObjectURL(res);
+      if (!url) throw new Error("No image returned");
+      preview.innerHTML = "<img src=\"" + url + "\"/>";
+      return toB64(url);
+    })
+    .then(function(b64) {
+      genB64 = b64;
+      btn.classList.add("done");
+      btn.textContent = "Generated — ready to store";
+      btn.disabled = false;
+    })
+    .catch(function(e) {
+      btn.textContent = "Generate with Seedream 3.0";
+      btn.disabled = false;
+      alert("Failed: " + e.message);
+    });
+}
+
+function handleImg(input) {
+  var f = input.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(e) {
+    genB64 = e.target.result;
+    var el = document.getElementById("imgInfo");
+    el.innerHTML = "<span class=\"fi-icon\">&#x1F5BC;</span><div><div class=\"fi-name\">" + esc(f.name) + "</div><div class=\"fi-size\">" + fmt(f.size) + "</div></div><span class=\"fi-rm\" id=\"imgRm\">" + "✕" + "</span>";
+    el.classList.add("show");
+    document.getElementById("imgRm").addEventListener("click", function() { genB64 = null; el.classList.remove("show"); });
+  };
+  r.readAsDataURL(f);
+}
+
+function handleFile(input) {
+  var f = input.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(e) {
+    fileB64 = e.target.result;
+    fileName = f.name;
+    var mn = document.getElementById("memName");
+    if (mn && !mn.value) mn.value = f.name.replace(/\.[^.]+$/, "");
+    var el = document.getElementById("fileInfo");
+    el.innerHTML = "<span class=\"fi-icon\">&#x1F4C1;</span><div><div class=\"fi-name\">" + esc(f.name) + "</div><div class=\"fi-size\">" + fmt(f.size) + " — " + (f.type || "unknown") + "</div></div><span class=\"fi-rm\" id=\"fileRm\">" + "✕" + "</span>";
+    el.classList.add("show");
+    document.getElementById("fileRm").addEventListener("click", function() { fileB64 = null; fileName = null; el.classList.remove("show"); });
+  };
+  r.readAsDataURL(f);
+}
+
+function getContent() {
+  var f1 = (document.getElementById("f1") || {}).value || "";
+  var f2 = (document.getElementById("f2") || {}).value || "";
+  var f3 = (document.getElementById("f3") || {}).value || "";
+  var f4 = (document.getElementById("f4") || {}).value || "";
+  var conf = (document.getElementById("conf1") || {}).value || "80";
+  if (curType === "reasoning") return "REASONING:\n" + f1 + "\n\nCONCLUSION:\n" + f2 + "\n\nCONFIDENCE: " + conf + "%";
+  if (curType === "image") return f2 || f1 || "AI Generated Image";
+  if (curType === "log") return "STATUS: " + logStatus.toUpperCase() + "\nTIMESTAMP: " + f2 + "\n\nEVENT:\n" + f1;
+  if (curType === "decision") return "DECISION:\n" + f1 + "\n\nREASONING:\n" + f2 + "\n\nALTERNATIVES: " + f3 + "\n\nCONFIDENCE: " + conf + "%";
+  if (curType === "research") return "TOPIC:\n" + f1 + "\n\nFINDINGS:\n" + f2 + "\n\nSOURCES:\n" + f3 + "\n\nTAKEAWAYS:\n" + f4;
+  if (curType === "checkpoint") return "MODEL: " + f1 + "\nVERSION: " + f2 + "\n\nSTATE:\n" + f3 + "\n\nNOTES: " + f4;
+  if (curType === "file") return f1 || fileName || "Uploaded file";
+  return "";
+}
+
+function storeMemory() {
+  var name = (document.getElementById("memName").value || "").trim();
+  if (!name) { alert("Enter a memory name"); return; }
+  if (curType === "image" && !genB64) { alert("Generate or upload an image first"); return; }
+  if (curType === "file" && !fileB64) { alert("Upload a file first"); return; }
+  var btn = document.getElementById("storeBtn");
+  btn.disabled = true;
+  var logEl = document.getElementById("plog");
+  logEl.innerHTML = "";
+  logEl.classList.add("show");
+  document.getElementById("rcard").classList.remove("show");
+  var tags = (document.getElementById("memTags").value || "").split(",").map(function(t) { return t.trim(); }).filter(Boolean);
+  var agentId = (document.getElementById("agentId").value || "").trim();
+  var content = getContent();
+  var safeName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
+  var b64, fn;
+  if (curType === "image") { b64 = genB64; fn = safeName + "_" + Date.now() + ".png"; }
+  else if (curType === "file") { b64 = fileB64; fn = fileName || safeName + "_" + Date.now(); }
+  else { b64 = "data:text/plain;base64," + btoa(unescape(encodeURIComponent(content))); fn = safeName + "_" + Date.now() + ".txt"; }
+  addLog("info", "Connecting to Shelby Protocol...");
+  document.getElementById("btnText").textContent = "Storing...";
+  fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageBase64: b64, filename: fn, memoryType: curType, agentId: agentId, tags: tags, name: name })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.success) throw new Error(data.error || "Failed");
+    addLog("ok", data.demo ? "Stored in demo mode" : "Stored on-chain successfully");
+    var entry = { id: Date.now(), name: name, filename: fn, type: curType, content: content,
+      agentId: agentId, tags: tags, imgB64: curType === "image" ? genB64 : null,
+      size: data.size, txHash: data.txHash, explorerUrl: data.explorerUrl,
+      aptosUrl: data.aptosUrl, demo: data.demo, ts: Date.now() };
+    mems.unshift(entry);
+    try { localStorage.setItem("sv2", JSON.stringify(mems.slice(0,200))); } catch(e) {}
+    updateCounts();
+    showResult(data, entry);
+  })
+  .catch(function(e) { addLog("err", "Error: " + e.message); })
+  .finally(function() {
+    btn.disabled = false;
+    document.getElementById("btnText").textContent = TYPES[curType].label;
+  });
+}
+
+function addLog(type, msg) {
+  var el = document.getElementById("plog");
+  var t = new Date().toLocaleTimeString("en", { hour12: false });
+  var cls = type === "ok" ? "ok" : type === "err" ? "err" : "info";
+  el.innerHTML += "<div class=\"ll\"><span class=\"lt\">" + t + "</span><span class=\"lm " + cls + "\">" + esc(msg) + "</span></div>";
+  el.scrollTop = el.scrollHeight;
+}
+
+function showResult(data, entry) {
+  var el = document.getElementById("rcard");
+  el.innerHTML = "<div class=\"rtitle\">" + (data.demo ? "Stored (demo mode)" : "Stored on Shelby Protocol ✓") + "</div>"
+    + "<div class=\"rrow\"><span class=\"rk\">blob</span><span class=\"rv\">" + esc(entry.filename) + "</span></div>"
+    + "<div class=\"rrow\"><span class=\"rk\">size</span><span class=\"rv\">" + (entry.size || "--") + "</span></div>"
+    + (entry.txHash && !data.demo ? "<div class=\"rrow\"><span class=\"rk\">tx</span><span class=\"rv\">" + entry.txHash + "</span></div>" : "")
+    + "<div class=\"rlinks\">"
+    + (data.explorerUrl ? "<a class=\"rl\" href=\"" + data.explorerUrl + "\" target=\"_blank\">Shelby Explorer</a>" : "")
+    + (data.aptosUrl ? "<a class=\"rl\" href=\"" + data.aptosUrl + "\" target=\"_blank\">Aptos Explorer</a>" : "")
+    + "<span class=\"rl\" id=\"goVaultLink\">View Vault</span></div>";
+  el.classList.add("show");
+  document.getElementById("goVaultLink").addEventListener("click", function() { goPanel("vault"); });
+}
+
+function renderVault() {
+  var search = (document.getElementById("vaultSearch").value || "").toLowerCase();
+  var list = mems;
+  if (vf !== "all") list = list.filter(function(m) { return m.type === vf; });
+  if (search) list = list.filter(function(m) { return (m.name + m.content + m.agentId).toLowerCase().indexOf(search) > -1; });
+  var el = document.getElementById("memories");
+  if (!list.length) {
+    el.innerHTML = "<div class=\"empty-v\"><div style=\"font-size:36px;opacity:.3;\">" + BR + "</div><p>No memories found.<br>Store your first memory above.</p></div>";
+    return;
+  }
+  el.innerHTML = list.map(function(m) {
+    var ti = TYPES[m.type] || { icon: "?" };
+    return "<div class=\"mc\" data-id=\"" + m.id + "\">"
+      + (m.imgB64 ? "<img class=\"mc-img\" src=\"" + m.imgB64 + "\" loading=\"lazy\"/>" : "")
+      + "<div class=\"mc-body\"><span class=\"tbadge t-" + m.type + "\">" + ti.icon + " " + m.type + "</span>"
+      + "<div class=\"mname\">" + esc(m.name) + "</div>"
+      + "<div class=\"mprev\">" + esc(m.content || "") + "</div>"
+      + "<div class=\"mfoot\"><span class=\"mtime\">" + ago(m.ts) + "</span>"
+      + "<span style=\"font-family:IBM Plex Mono,monospace;font-size:9px;color:" + (m.demo ? "#334155" : "#00FF88") + ";\">" + (m.demo ? "demo" : "on-chain") + "</span></div></div></div>";
+  }).join("");
+  document.querySelectorAll(".mc").forEach(function(card) {
+    card.addEventListener("click", function() { openMem(parseInt(card.getAttribute("data-id"))); });
+  });
+}
+
+function openMem(id) {
+  var m = mems.find(function(x) { return x.id === id; });
+  if (!m) return;
+  var ti = TYPES[m.type] || { icon: "?" };
+  document.getElementById("mhdrContent").innerHTML = "<span class=\"tbadge t-" + m.type + "\">" + ti.icon + " " + m.type + "</span><div style=\"font-size:13px;font-weight:700;color:var(--white);margin-top:5px;\">" + esc(m.name) + "</div>";
+  var body = "";
+  if (m.imgB64) body += "<img class=\"modal-img\" src=\"" + m.imgB64 + "\"/>";
+  if (m.content) body += "<div class=\"mcontent\">" + esc(m.content) + "</div>";
+  body += "<div class=\"g2\" style=\"font-family:IBM Plex Mono,monospace;font-size:11px;margin-bottom:14px;gap:10px;\">"
+    + "<div><div style=\"color:var(--text2);\">Size</div><div style=\"color:var(--white);\">" + (m.size || "--") + "</div></div>"
+    + "<div><div style=\"color:var(--text2);\">Agent</div><div style=\"color:var(--white);\">" + esc(m.agentId || "--") + "</div></div>"
+    + "<div><div style=\"color:var(--text2);\">Stored</div><div style=\"color:var(--white);\">" + new Date(m.ts).toLocaleString() + "</div></div>"
+    + "<div><div style=\"color:var(--text2);\">Chain</div><div style=\"color:" + (m.demo ? "#334155" : "#00FF88") + ";\">" + (m.demo ? "demo" : "on-chain") + "</div></div></div>"
+    + (m.txHash ? "<div style=\"font-family:IBM Plex Mono,monospace;font-size:10px;padding:10px;background:var(--bg);border:1px solid var(--b1);border-radius:6px;color:var(--green);word-break:break-all;margin-bottom:12px;\">TX: " + m.txHash + "</div>" : "")
+    + "<div style=\"display:flex;gap:6px;flex-wrap:wrap;\">"
+    + (m.explorerUrl ? "<a class=\"rl\" href=\"" + m.explorerUrl + "\" target=\"_blank\">Shelby Explorer</a>" : "")
+    + (m.aptosUrl ? "<a class=\"rl\" href=\"" + m.aptosUrl + "\" target=\"_blank\">Aptos Explorer</a>" : "")
+    + "<span class=\"rl\" id=\"shareBtn\">Share on X</span>"
+    + "<span class=\"rl\" style=\"color:var(--red);\" id=\"delBtn\">Delete</span></div>";
+  document.getElementById("mbdy").innerHTML = body;
+  document.getElementById("moverlay").classList.add("open");
+  document.getElementById("shareBtn").addEventListener("click", function() { shareMem(id); });
+  document.getElementById("delBtn").addEventListener("click", function() { delMem(id); });
+}
+
+function closeModal() { document.getElementById("moverlay").classList.remove("open"); }
+
+function delMem(id) {
+  if (!confirm("Delete this memory?")) return;
+  mems = mems.filter(function(m) { return m.id !== id; });
+  try { localStorage.setItem("sv2", JSON.stringify(mems)); } catch(e) {}
+  closeModal(); renderVault(); updateCounts();
+}
+
+function shareMem(id) {
+  var m = mems.find(function(x) { return x.id === id; });
+  if (!m) return;
+  window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent("Stored AI " + m.type + " memory on-chain with @ShelbyProtocol\n\n\"" + m.name + "\"\n\n#ShelbyVault #AIMemory #Aptos"), "_blank");
+}
+
+function renderStats() {
+  var types = Object.keys(TYPES);
+  var onchain = mems.filter(function(m) { return !m.demo; }).length;
+  var el = document.getElementById("statsGrid");
+  var html = "<div class=\"sc\"><div class=\"slbl\">Total Memories</div><div class=\"sval\" style=\"color:var(--green);\">" + mems.length + "</div><div class=\"ssub\">stored</div></div>"
+    + "<div class=\"sc\"><div class=\"slbl\">On-Chain</div><div class=\"sval\" style=\"color:var(--blue);\">" + onchain + "</div><div class=\"ssub\">confirmed</div></div>"
+    + "<div class=\"sc\"><div class=\"slbl\">Latest</div><div class=\"sval\" style=\"font-size:15px;\">" + (mems[0] ? ago(mems[0].ts) : "--") + "</div><div class=\"ssub\">most recent</div></div>"
+    + "<div class=\"sc\"><div class=\"slbl\">Types Used</div><div class=\"sval\">" + types.filter(function(t) { return mems.some(function(m) { return m.type === t; }); }).length + "</div><div class=\"ssub\">of 7</div></div>";
+  types.forEach(function(t) {
+    var count = mems.filter(function(m) { return m.type === t; }).length;
+    html += "<div class=\"sc\"><div class=\"slbl\">" + TYPES[t].icon + " " + t + "</div><div class=\"sval\" style=\"font-size:22px;\">" + count + "</div></div>";
+  });
+  el.innerHTML = html;
+}
+
+function updateCounts() {
+  document.getElementById("memCount").textContent = mems.length;
+  document.getElementById("sideCount").textContent = mems.length;
+}
+
+function ago(ts) {
+  var d = Date.now() - ts;
+  if (d < 60000) return "just now";
+  if (d < 3600000) return Math.floor(d/60000) + "m ago";
+  if (d < 86400000) return Math.floor(d/3600000) + "h ago";
+  return Math.floor(d/86400000) + "d ago";
+}
+
+function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmt(b) { if(!b) return "--"; if(b<1024) return b+" B"; if(b<1048576) return (b/1024).toFixed(1)+" KB"; return (b/1048576).toFixed(2)+" MB"; }
+function toB64(url) { return fetch(url).then(function(r){return r.blob();}).then(function(b){return new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result);};fr.onerror=rej;fr.readAsDataURL(b);});}); }
+
+updateCounts();
+buildDynFields();
+</script>
+<script src="https://js.puter.com/v2/" defer></script>
+</body>
+</html>
