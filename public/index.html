@@ -629,10 +629,14 @@ function initMatrix() {
 }
 
 // ── WALLET ────────────────────────────────────────────────────────────────────
-// Supports both AIP-62 standard (newer) and window.aptos legacy (Petra classic)
-var petraWallet = null; // AIP-62 handle, may be null if only legacy available
+var petraWallet = null;
 
-// Detect Petra via AIP-62 wallet standard registry
+// Check if Petra legacy (window.aptos) is available — most common Chrome extension path
+function hasPetraLegacy() {
+  return typeof window.aptos !== "undefined" && window.aptos !== null;
+}
+
+// Check if AIP-62 standard is available
 function findPetraAIP62() {
   try {
     if (typeof getAptosWallets === "function") {
@@ -648,62 +652,96 @@ function findPetraAIP62() {
   return null;
 }
 
-// Check if legacy window.aptos (Petra's classic Chrome extension injection) exists
-function hasPetraLegacy() {
-  return typeof window.aptos !== "undefined" && window.aptos !== null;
+// Show error message on the connect overlay
+function showConnectError(msg) {
+  var btn = document.getElementById("connectPetraBtn");
+  var sub = document.querySelector(".connect-sub");
+  btn.disabled = false;
+  btn.textContent = "💰 Connect Petra Wallet";
+  if (sub) {
+    sub.style.color = "var(--red)";
+    sub.textContent = "⚠ " + msg + " — click to try again";
+    setTimeout(function() {
+      sub.style.color = "";
+      sub.textContent = "Connect your Petra wallet to store AI memories permanently on Shelby Protocol — Aptos blockchain.";
+    }, 4000);
+  }
 }
 
 async function connectWallet() {
   var btn = document.getElementById("connectPetraBtn");
+
+  // Guard: prevent double-click while already connecting
+  if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = "Connecting...";
 
-  // Try AIP-62 first
-  petraWallet = findPetraAIP62();
+  // ── Path 1: Legacy window.aptos (most Petra Chrome installs use this) ──────
+  if (hasPetraLegacy()) {
+    try {
+      var resp = await window.aptos.connect();
+      // Petra returns { address, publicKey } or { account: { address } }
+      var addr = (resp && resp.address)
+        ? resp.address
+        : (resp && resp.account && resp.account.address)
+          ? resp.account.address
+          : null;
+      if (!addr) throw new Error("No address returned from wallet");
+      walletAddress = addr.toString();
+      walletConnected = true;
+      onWalletConnected();
+      return;
+    } catch(e) {
+      var msg = (e && e.message) ? e.message : String(e);
+      var lower = msg.toLowerCase();
+      // User rejected — silently reset button, no error banner
+      if (lower.indexOf("reject") > -1 || lower.indexOf("cancel") > -1 ||
+          lower.indexOf("user") > -1 || lower.indexOf("denied") > -1) {
+        btn.disabled = false;
+        btn.textContent = "💰 Connect Petra Wallet";
+        return;
+      }
+      // Real error — show it and fall through to AIP-62
+      console.warn("Legacy connect failed:", msg);
+    }
+  }
 
+  // ── Path 2: AIP-62 standard ───────────────────────────────────────────────
+  petraWallet = findPetraAIP62();
   if (petraWallet) {
     try {
-      var feature = petraWallet.features["aptos:connect"];
-      if (!feature) throw new Error("Wallet missing connect feature");
-      var result = await feature.connect();
-      var accounts = result.accounts || [];
+      var connectFeature = petraWallet.features["aptos:connect"];
+      if (!connectFeature) throw new Error("aptos:connect feature missing");
+      // The feature object is { connect: fn } or directly callable
+      var connectFn = typeof connectFeature === "function"
+        ? connectFeature
+        : (connectFeature.connect || connectFeature);
+      var result = await connectFn({ silent: false });
+      var accounts = (result && result.accounts) ? result.accounts : [];
       if (!accounts.length) throw new Error("No accounts returned");
       walletAddress = accounts[0].address.toString();
       walletConnected = true;
       onWalletConnected();
       return;
     } catch(e) {
-      if (e.message && (e.message.toLowerCase().indexOf("reject") > -1 ||
-          e.message.toLowerCase().indexOf("cancel") > -1 ||
-          e.message.toLowerCase().indexOf("user") > -1)) {
+      var msg2 = (e && e.message) ? e.message : String(e);
+      var lower2 = msg2.toLowerCase();
+      if (lower2.indexOf("reject") > -1 || lower2.indexOf("cancel") > -1 ||
+          lower2.indexOf("user") > -1 || lower2.indexOf("denied") > -1) {
         btn.disabled = false;
         btn.textContent = "💰 Connect Petra Wallet";
         return;
       }
-      // AIP-62 failed for non-user reason, fall through to legacy
-    }
-  }
-
-  // Try legacy window.aptos (Petra injects this in most Chrome setups)
-  if (hasPetraLegacy()) {
-    try {
-      var resp = await window.aptos.connect();
-      walletAddress = resp.address;
-      walletConnected = true;
-      onWalletConnected();
-      return;
-    } catch(e) {
-      btn.disabled = false;
-      btn.textContent = "💰 Connect Petra Wallet";
+      showConnectError("Connection failed: " + msg2.slice(0, 80));
       return;
     }
   }
 
-  // Neither AIP-62 nor legacy found — redirect to install
+  // ── Neither found ─────────────────────────────────────────────────────────
   btn.disabled = false;
   btn.textContent = "Install Petra Wallet";
-  var msg = document.getElementById("noPetraMsg");
-  if (msg) msg.style.display = "block";
+  var noPetra = document.getElementById("noPetraMsg");
+  if (noPetra) noPetra.style.display = "block";
   window.open("https://chromewebstore.google.com/detail/petra-aptos-wallet/ejjladinnckdgjemekebdpeokbikhfci", "_blank");
 }
 
@@ -723,10 +761,10 @@ function onWalletConnected() {
 
 async function disconnectWallet() {
   try {
-    if (petraWallet && petraWallet.features["aptos:disconnect"]) {
-      await petraWallet.features["aptos:disconnect"].disconnect();
-    } else if (hasPetraLegacy()) {
+    if (hasPetraLegacy()) {
       await window.aptos.disconnect();
+    } else if (petraWallet && petraWallet.features["aptos:disconnect"]) {
+      await petraWallet.features["aptos:disconnect"].disconnect();
     }
   } catch(e) {}
   walletAddress = null; walletConnected = false; petraWallet = null;
@@ -739,35 +777,39 @@ async function disconnectWallet() {
   document.getElementById("connectOverlay").classList.remove("hidden");
 }
 
-// Auto-reconnect on page load if previously connected
+// Silent auto-reconnect on page load (only if wallet was previously authorized)
 async function checkWalletOnLoad() {
-  // Try AIP-62 reconnect
-  try {
-    petraWallet = findPetraAIP62();
-    if (petraWallet && petraWallet.features["aptos:account"]) {
-      var acc = await petraWallet.features["aptos:account"].account();
-      if (acc && acc.address) {
-        walletAddress = acc.address.toString();
-        walletConnected = true;
-        onWalletConnected();
-        return;
-      }
-    }
-  } catch(e) {}
-
-  // Try legacy window.aptos reconnect
+  // Try legacy first — never prompts user if not already connected
   try {
     if (hasPetraLegacy()) {
       var isConn = await window.aptos.isConnected();
       if (isConn) {
-        var acc2 = await window.aptos.account();
-        walletAddress = acc2.address;
-        walletConnected = true;
-        onWalletConnected();
-        return;
+        var acc = await window.aptos.account();
+        var addr = (acc && acc.address) ? acc.address
+          : (acc && acc.account && acc.account.address) ? acc.account.address : null;
+        if (addr) {
+          walletAddress = addr.toString();
+          walletConnected = true;
+          onWalletConnected();
+          return;
+        }
       }
     }
-  } catch(e) {}
+  } catch(e) { /* not connected, that's fine */ }
+
+  // Try AIP-62 silent reconnect
+  try {
+    petraWallet = findPetraAIP62();
+    if (petraWallet && petraWallet.features["aptos:account"]) {
+      var accFeat = petraWallet.features["aptos:account"];
+      var acc2 = await (typeof accFeat === "function" ? accFeat() : accFeat.account());
+      if (acc2 && acc2.address) {
+        walletAddress = acc2.address.toString();
+        walletConnected = true;
+        onWalletConnected();
+      }
+    }
+  } catch(e) { /* not connected, that's fine */ }
 }
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
@@ -1190,19 +1232,22 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
 
     addLog("info", "Petra popup opening — please approve...");
 
-    // Try AIP-62 signing first
-    var signFeature = petraWallet && petraWallet.features && petraWallet.features["aptos:signAndSubmitTransaction"];
-    if (signFeature) {
-      var txResult = await signFeature.signAndSubmitTransaction({ payload: payload });
+    // Legacy window.aptos first (most reliable for Petra Chrome extension)
+    if (hasPetraLegacy()) {
+      var txResult = await window.aptos.signAndSubmitTransaction(payload);
       txHash = txResult.hash || (txResult.output && txResult.output.hash);
       addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
-    } else if (hasPetraLegacy()) {
-      // Legacy window.aptos fallback
-      var txResult2 = await window.aptos.signAndSubmitTransaction(payload);
-      txHash = txResult2.hash;
-      addLog("ok", "TX submitted: " + txHash.slice(0,16) + "...");
     } else {
-      addLog("warn", "Wallet signing unavailable, storing in demo mode");
+      // AIP-62 fallback
+      var signFeature = petraWallet && petraWallet.features && petraWallet.features["aptos:signAndSubmitTransaction"];
+      if (signFeature) {
+        var signFn = typeof signFeature === "function" ? signFeature : (signFeature.signAndSubmitTransaction || signFeature);
+        var txResult2 = await signFn({ payload: payload });
+        txHash = txResult2.hash || (txResult2.output && txResult2.output.hash);
+        addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
+      } else {
+        addLog("warn", "Wallet signing unavailable, storing in demo mode");
+      }
     }
   } catch(e) {
     var msg = e.message || "";
