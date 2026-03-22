@@ -563,14 +563,14 @@ function initMatrix() {
 document.querySelectorAll("[data-panel]").forEach(function(el) {
   el.addEventListener("click", function() { goPanel(el.getAttribute("data-panel")); });
 });
-document.querySelectorAll("[data-filter]").forEach(function(el) {
-  el.addEventListener("click", function() { vf = el.getAttribute("data-filter"); goPanel("vault"); });
+document.querySelectorAll("[data-filter]").forEach(function(btn) {
+  btn.addEventListener("click", function() { vf = this.getAttribute("data-filter"); goPanel("vault"); });
 });
-document.querySelectorAll("[data-vf]").forEach(function(el) {
-  el.addEventListener("click", function() {
-    vf = el.getAttribute("data-vf");
+document.querySelectorAll("[data-vf]").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    vf = this.getAttribute("data-vf");
     document.querySelectorAll("[data-vf]").forEach(function(b) { b.classList.remove("active"); });
-    el.classList.add("active");
+    this.classList.add("active");
     renderVault();
   });
 });
