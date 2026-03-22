@@ -2,368 +2,146 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>ShelbyVault 2.0 — AI Memory Storage</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
-:root{--bg:#03050A;--sur:#080D14;--card:#0C1520;--b1:#142030;--b2:#1E3048;
---green:#00FF88;--blue:#0EA5E9;--purple:#A855F7;--orange:#F97316;
---red:#EF4444;--yellow:#EAB308;--cyan:#06B6D4;
---text:#CBD5E1;--text2:#64748B;--text3:#334155;--white:#F1F5F9;}
+:root{--bg:#03050A;--sur:#080D14;--card:#0C1520;--b1:#142030;--b2:#1E3048;--green:#00FF88;--blue:#0EA5E9;--purple:#A855F7;--orange:#F97316;--red:#EF4444;--yellow:#EAB308;--cyan:#06B6D4;--text:#CBD5E1;--text2:#64748B;--text3:#334155;--white:#F1F5F9;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{height:100%;}
-body{background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",sans-serif;
-min-height:100%;overflow-x:hidden;}
-#matrix-canvas{position:fixed;top:0;left:0;width:100%;height:100%;
-pointer-events:none;z-index:0;opacity:0.025;}
-
-/* TOPBAR */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;
-justify-content:space-between;padding:0 20px;height:56px;
-border-bottom:1px solid var(--b1);background:rgba(3,5,10,.97);
-backdrop-filter:blur(20px);}
+body{background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",sans-serif;min-height:100vh;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:56px;border-bottom:1px solid var(--b1);background:rgba(3,5,10,.95);position:sticky;top:0;z-index:50;}
 .brand{display:flex;align-items:center;gap:10px;}
-.brand-logo{width:30px;height:30px;background:linear-gradient(135deg,var(--green),var(--blue));
-border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;
-box-shadow:0 0 12px rgba(0,255,136,.3);animation:logoPulse 3s infinite;}
-@keyframes logoPulse{0%,100%{box-shadow:0 0 12px rgba(0,255,136,.3);}
-50%{box-shadow:0 0 24px rgba(0,255,136,.6);}}
-.brand-name{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:15px;color:var(--white);}
+.brand-logo{width:28px;height:28px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.brand-name{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:14px;color:var(--white);}
 .brand-name span{color:var(--green);}
-.bv{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--green);
-background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);
-padding:2px 7px;border-radius:3px;}
-.topright{display:flex;align-items:center;gap:10px;}
-.mem-count{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text2);}
-.mem-count span{color:var(--white);font-weight:700;}
-.status-pill{display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;
-font-size:11px;color:var(--green);background:rgba(0,255,136,.06);
-border:1px solid rgba(0,255,136,.15);padding:4px 12px;border-radius:20px;}
+.bv{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--green);background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);padding:2px 7px;border-radius:3px;}
+.status-pill{display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--green);background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.15);padding:4px 12px;border-radius:20px;}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,255,136,.4);}
-50%{opacity:.7;box-shadow:0 0 0 4px rgba(0,255,136,0);}}
-
-/* WALLET BUTTON */
-.wallet-btn{display:flex;align-items:center;gap:7px;padding:6px 14px;
-border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:11px;
-font-weight:700;cursor:pointer;transition:all .2s;border:none;}
-.wallet-btn.disconnected{background:var(--green);color:#000;}
-.wallet-btn.disconnected:hover{transform:translateY(-1px);
-box-shadow:0 4px 16px rgba(0,255,136,.3);}
-.wallet-btn.connected{background:rgba(0,255,136,.08);color:var(--green);
-border:1px solid rgba(0,255,136,.2);}
-.wallet-btn.connected:hover{background:rgba(239,68,68,.08);color:var(--red);
-border-color:rgba(239,68,68,.2);}
-.wallet-addr{font-family:"IBM Plex Mono",monospace;font-size:10px;
-color:var(--text2);padding:5px 10px;background:var(--sur);
-border:1px solid var(--b1);border-radius:6px;display:none;}
-.wallet-addr.show{display:block;}
-
-/* CONNECT OVERLAY */
-.connect-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);
-backdrop-filter:blur(12px);z-index:200;display:flex;align-items:center;
-justify-content:center;padding:20px;}
-.connect-overlay.hidden{display:none;}
-.connect-card{background:var(--card);border:1px solid var(--b2);
-border-radius:20px;padding:40px;max-width:420px;width:100%;text-align:center;
-animation:modalIn .3s cubic-bezier(.34,1.56,.64,1);}
-@keyframes modalIn{from{transform:scale(.9) translateY(20px);opacity:0;}
-to{transform:scale(1) translateY(0);opacity:1;}}
-.connect-logo{width:64px;height:64px;background:linear-gradient(135deg,var(--green),var(--blue));
-border-radius:16px;display:flex;align-items:center;justify-content:center;
-font-size:32px;margin:0 auto 20px;box-shadow:0 0 32px rgba(0,255,136,.3);}
-.connect-title{font-size:22px;font-weight:700;color:var(--white);margin-bottom:8px;}
-.connect-sub{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:28px;}
-.connect-petra-btn{width:100%;padding:14px;background:var(--green);color:#000;
-border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;
-display:flex;align-items:center;justify-content:center;gap:10px;
-transition:all .2s;font-family:"IBM Plex Sans",sans-serif;margin-bottom:10px;}
-.connect-petra-btn:hover{transform:translateY(-1px);
-box-shadow:0 6px 24px rgba(0,255,136,.3);}
-.connect-petra-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-.connect-skip{font-family:"IBM Plex Mono",monospace;font-size:11px;
-color:var(--text3);cursor:pointer;padding:8px;transition:color .15s;}
-.connect-skip:hover{color:var(--text2);}
-.connect-features{display:grid;grid-template-columns:1fr 1fr;gap:10px;
-margin-bottom:28px;text-align:left;}
-.cf{background:var(--sur);border:1px solid var(--b1);border-radius:8px;
-padding:12px;font-size:12px;}
-.cf-icon{font-size:18px;margin-bottom:6px;}
-.cf-title{font-weight:600;color:var(--white);margin-bottom:2px;font-size:12px;}
-.cf-desc{color:var(--text2);font-size:11px;line-height:1.4;}
-.no-petra{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text3);
-margin-top:10px;}
-.no-petra a{color:var(--blue);text-decoration:none;}
-.no-petra a:hover{color:var(--green);}
-
-/* LAYOUT */
-.layout{position:relative;z-index:1;display:flex;min-height:calc(100vh - 56px);}
-
-/* SIDEBAR */
-.sidebar{width:210px;flex-shrink:0;border-right:1px solid var(--b1);
-padding:20px 0;background:rgba(8,13,20,.7);}
-.s-label{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:2px;
-color:var(--text3);text-transform:uppercase;padding:0 16px;margin-bottom:8px;display:block;}
-.s-sec{margin-bottom:24px;}
-.s-item{display:flex;align-items:center;gap:8px;padding:9px 12px;margin:0 8px 2px;
-border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);
-transition:all .2s;border:1px solid transparent;}
-.s-item:hover{background:var(--b1);color:var(--text);transform:translateX(2px);}
-.s-item.active{background:rgba(0,255,136,.08);color:var(--green);
-border-color:rgba(0,255,136,.2);}
-.s-icon{width:18px;text-align:center;font-size:14px;}
-.s-count{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;
-background:var(--b2);padding:2px 7px;border-radius:10px;}
-.s-item.active .s-count{background:rgba(0,255,136,.2);color:var(--green);}
-
-/* WALLET INFO IN SIDEBAR */
-.sidebar-wallet{margin:0 8px 20px;padding:12px;background:var(--sur);
-border:1px solid var(--b1);border-radius:10px;}
-.sw-label{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text3);
-text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
-.sw-addr{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--green);
-word-break:break-all;line-height:1.5;}
-.sw-disconnect{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text3);
-cursor:pointer;margin-top:6px;transition:color .15s;}
-.sw-disconnect:hover{color:var(--red);}
-
-/* MAIN */
-.main{flex:1;overflow-y:auto;overflow-x:hidden;}
-.panel{display:none;padding:28px 32px;animation:panelIn .2s ease;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.mem-count{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text2);}
+.mem-count span{color:var(--white);}
+.layout{display:flex;min-height:calc(100vh - 56px);}
+.sidebar{width:200px;flex-shrink:0;border-right:1px solid var(--b1);padding:16px 0;background:rgba(8,13,20,.5);}
+.s-label{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;padding:0 16px;margin-bottom:8px;display:block;}
+.s-sec{margin-bottom:20px;}
+.s-item{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:0 6px 2px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border:1px solid transparent;}
+.s-item:hover{background:var(--b1);color:var(--text);}
+.s-item.active{background:rgba(0,255,136,.08);color:var(--green);border-color:rgba(0,255,136,.15);}
+.s-icon{width:16px;text-align:center;font-size:13px;}
+.s-count{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;background:var(--b2);padding:1px 6px;border-radius:10px;}
+.s-item.active .s-count{background:rgba(0,255,136,.15);color:var(--green);}
+.main{flex:1;overflow-y:auto;}
+.panel{display:none;padding:24px;}
 .panel.active{display:block;}
-@keyframes panelIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-.p-title{font-size:22px;font-weight:700;color:var(--white);margin-bottom:4px;}
-.p-sub{font-size:13px;color:var(--text2);margin-bottom:28px;}
-
-/* TYPE GRID */
-.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
-.tcard{background:var(--card);border:2px solid var(--b1);border-radius:12px;
-padding:16px 10px;cursor:pointer;text-align:center;transition:all .25s;position:relative;overflow:hidden;}
-.tcard::before{content:"";position:absolute;inset:0;opacity:0;
-background:radial-gradient(circle at 50% 0%,rgba(0,255,136,.1),transparent 70%);
-transition:opacity .3s;}
-.tcard:hover{border-color:var(--b2);transform:translateY(-2px);
-box-shadow:0 8px 24px rgba(0,0,0,.4);}
-.tcard:hover::before{opacity:1;}
-.tcard.active{border-color:var(--green);background:rgba(0,255,136,.05);
-box-shadow:0 0 20px rgba(0,255,136,.15);}
-.tcard.active::before{opacity:1;}
-.tcard-icon{font-size:22px;margin-bottom:6px;transition:transform .2s;}
-.tcard:hover .tcard-icon,.tcard.active .tcard-icon{transform:scale(1.15);}
-.tcard-name{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:700;
-text-transform:uppercase;color:var(--text2);}
+.p-title{font-size:20px;font-weight:700;color:var(--white);margin-bottom:4px;}
+.p-sub{font-size:13px;color:var(--text2);margin-bottom:24px;}
+.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.tcard{background:var(--card);border:2px solid var(--b1);border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;transition:all .2s;}
+.tcard:hover{border-color:var(--b2);}
+.tcard.active{border-color:var(--green);background:rgba(0,255,136,.05);}
+.tcard-icon{font-size:20px;margin-bottom:5px;}
+.tcard-name{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);}
 .tcard.active .tcard-name{color:var(--green);}
 .tcard-desc{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.3;}
-
-/* FIELDS */
-.sbox{background:var(--card);border:1px solid var(--b1);border-radius:12px;
-padding:20px;margin-bottom:16px;transition:border-color .2s;}
-.sbox:focus-within{border-color:rgba(0,255,136,.2);}
-.sbox-title{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);
-letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px;}
-.field{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+.sbox{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:18px;margin-bottom:16px;}
+.sbox-title{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
 .field:last-child{margin-bottom:0;}
-.flabel{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);
-text-transform:uppercase;letter-spacing:.5px;}
-input,textarea{background:var(--sur);border:1px solid var(--b2);border-radius:8px;
-color:var(--white);font-family:"IBM Plex Sans",sans-serif;font-size:13px;
-padding:11px 13px;outline:none;transition:all .2s;width:100%;}
-input:focus,textarea:focus{border-color:var(--green);
-box-shadow:0 0 0 3px rgba(0,255,136,.06);}
+.flabel{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+input,textarea,select{background:var(--sur);border:1px solid var(--b2);border-radius:7px;color:var(--white);font-family:"IBM Plex Sans",sans-serif;font-size:13px;padding:10px 12px;outline:none;transition:border-color .2s;width:100%;}
+input:focus,textarea:focus{border-color:var(--green);}
 input::placeholder,textarea::placeholder{color:var(--text3);}
-textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;
-line-height:1.7;min-height:120px;}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-
-/* CONFIDENCE */
-.conf-row{display:flex;align-items:center;gap:12px;}
-.conf-range{flex:1;-webkit-appearance:none;height:4px;background:var(--b2);
-border-radius:2px;border:none;padding:0;}
-.conf-range::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
-border-radius:50%;background:var(--green);cursor:pointer;
-box-shadow:0 0 8px rgba(0,255,136,.4);}
-.conf-val{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--green);
-width:36px;text-align:right;font-weight:700;}
-
-/* STATUS */
+textarea{resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:12px;line-height:1.6;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.conf-row{display:flex;align-items:center;gap:10px;}
+.conf-range{flex:1;-webkit-appearance:none;height:4px;background:var(--b2);border-radius:2px;border:none;padding:0;}
+.conf-range::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;}
+.conf-val{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--green);width:34px;text-align:right;}
 .status-row{display:flex;gap:6px;}
-.sopt{flex:1;padding:9px 4px;border:1px solid var(--b2);border-radius:7px;
-background:var(--sur);color:var(--text2);font-family:"IBM Plex Mono",monospace;
-font-size:10px;cursor:pointer;text-align:center;transition:all .2s;}
+.sopt{flex:1;padding:8px 4px;border:1px solid var(--b2);border-radius:6px;background:var(--sur);color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:10px;cursor:pointer;text-align:center;transition:all .15s;}
 .sopt[data-s=success].sel{border-color:var(--green);background:rgba(0,255,136,.08);color:var(--green);}
 .sopt[data-s=warning].sel{border-color:var(--yellow);background:rgba(234,179,8,.08);color:var(--yellow);}
 .sopt[data-s=error].sel{border-color:var(--red);background:rgba(239,68,68,.08);color:var(--red);}
 .sopt[data-s=info].sel{border-color:var(--blue);background:rgba(14,165,233,.08);color:var(--blue);}
-
-/* IMAGE */
-.img-tabs{display:flex;gap:8px;margin-bottom:14px;}
-.img-tab{padding:8px 16px;border:1px solid var(--b2);border-radius:7px;background:var(--sur);
-color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:11px;cursor:pointer;transition:all .2s;}
+.img-tabs{display:flex;gap:8px;margin-bottom:12px;}
+.img-tab{padding:7px 14px;border:1px solid var(--b2);border-radius:6px;background:var(--sur);color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:11px;cursor:pointer;}
 .img-tab.active{border-color:var(--purple);background:rgba(168,85,247,.08);color:var(--purple);}
 .img-pane{display:none;}
 .img-pane.active{display:block;}
-.gen-preview{background:var(--sur);border:1px solid var(--b1);border-radius:10px;
-min-height:180px;display:flex;align-items:center;justify-content:center;
-margin-top:12px;overflow:hidden;}
+.gen-preview{background:var(--sur);border:1px solid var(--b1);border-radius:8px;min-height:160px;display:flex;align-items:center;justify-content:center;margin-top:10px;overflow:hidden;}
 .gen-preview img{width:100%;display:block;}
-.ph-txt{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text3);
-text-align:center;padding:20px;}
-.gen-btn{width:100%;margin-top:10px;padding:11px;background:rgba(168,85,247,.12);
-border:1px solid var(--purple);border-radius:8px;color:var(--purple);
-font-family:"IBM Plex Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.ph-txt{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--text3);text-align:center;padding:16px;}
+.gen-btn{width:100%;margin-top:10px;padding:10px;background:rgba(168,85,247,.12);border:1px solid var(--purple);border-radius:7px;color:var(--purple);font-family:"IBM Plex Sans",sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
 .gen-btn:disabled{opacity:.4;cursor:not-allowed;}
 .gen-btn.done{background:rgba(0,255,136,.08);border-color:var(--green);color:var(--green);}
-
-/* DROPZONE */
-.dropzone{border:2px dashed var(--b2);border-radius:10px;padding:32px 16px;
-text-align:center;cursor:pointer;position:relative;transition:all .2s;}
+.dropzone{border:2px dashed var(--b2);border-radius:8px;padding:28px 16px;text-align:center;cursor:pointer;position:relative;transition:all .2s;}
 .dropzone:hover{border-color:var(--cyan);background:rgba(6,182,212,.03);}
 .dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.dz-icon{font-size:32px;margin-bottom:10px;opacity:.6;}
-.dz-title{font-size:14px;font-weight:600;color:var(--white);margin-bottom:3px;}
-.dz-sub{font-size:12px;color:var(--text2);}
-.finfo{margin-top:12px;background:var(--sur);border:1px solid var(--b1);
-border-radius:8px;padding:11px 13px;display:none;align-items:center;gap:10px;}
+.dz-icon{font-size:28px;margin-bottom:8px;}
+.dz-title{font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px;}
+.dz-sub{font-size:11px;color:var(--text2);}
+.finfo{margin-top:10px;background:var(--sur);border:1px solid var(--b1);border-radius:7px;padding:10px 12px;display:none;align-items:center;gap:10px;}
 .finfo.show{display:flex;}
-.fi-icon{font-size:24px;}
+.fi-icon{font-size:22px;}
 .fi-name{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--white);word-break:break-all;}
 .fi-size{font-size:11px;color:var(--text2);margin-top:2px;}
-.fi-rm{margin-left:auto;cursor:pointer;color:var(--text3);font-size:18px;transition:color .15px;}
+.fi-rm{margin-left:auto;cursor:pointer;color:var(--text3);font-size:16px;}
 .fi-rm:hover{color:var(--red);}
-
-/* STORE BTN */
-.store-btn{width:100%;margin-top:8px;padding:15px;background:var(--green);color:#000;
-border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;
-display:flex;align-items:center;justify-content:center;gap:10px;
-transition:all .25s;font-family:"IBM Plex Sans",sans-serif;}
-.store-btn:hover:not(:disabled){transform:translateY(-2px);
-box-shadow:0 8px 32px rgba(0,255,136,.35);}
-.store-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-.store-btn.loading{background:rgba(0,255,136,.2);color:var(--green);
-border:1px solid var(--green);}
-
-/* LOG */
-.plog{margin-top:14px;background:var(--sur);border:1px solid var(--b1);
-border-radius:8px;padding:13px;font-family:"IBM Plex Mono",monospace;
-font-size:11px;display:none;max-height:140px;overflow-y:auto;}
-.plog.show{display:block;animation:fadeIn .2s ease;}
-@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-.ll{display:flex;gap:10px;margin-bottom:5px;}
-.lt{color:var(--text3);flex-shrink:0;}
+.store-btn{width:100%;padding:14px;background:var(--green);color:#000;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;}
+.store-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,255,136,.2);}
+.store-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.plog{margin-top:12px;background:var(--sur);border:1px solid var(--b1);border-radius:7px;padding:12px;font-family:"IBM Plex Mono",monospace;font-size:11px;display:none;max-height:140px;overflow-y:auto;}
+.plog.show{display:block;}
+.ll{display:flex;gap:8px;margin-bottom:4px;}
+.lt{color:var(--text3);}
 .lm{color:var(--text);}
 .lm.ok{color:var(--green);}
 .lm.err{color:var(--red);}
 .lm.info{color:var(--blue);}
-.lm.warn{color:var(--yellow);}
-
-/* RESULT */
-.rcard{margin-top:14px;border-radius:12px;padding:20px;display:none;position:relative;overflow:hidden;}
-.rcard.show{display:block;animation:successPop .4s cubic-bezier(.34,1.56,.64,1);}
-@keyframes successPop{from{opacity:0;transform:scale(.95) translateY(10px);}
-to{opacity:1;transform:scale(1) translateY(0);}}
-.rcard.onchain{background:linear-gradient(135deg,rgba(0,255,136,.08),rgba(14,165,233,.05));
-border:1px solid rgba(0,255,136,.3);box-shadow:0 0 30px rgba(0,255,136,.1);}
-.rcard.demo{background:rgba(100,116,139,.06);border:1px solid var(--b2);}
-.rcard-glow{position:absolute;top:-40px;right:-40px;width:120px;height:120px;
-border-radius:50%;background:radial-gradient(circle,rgba(0,255,136,.15),transparent 70%);
-pointer-events:none;}
-.rtitle{font-size:14px;font-weight:700;color:var(--green);margin-bottom:14px;
-display:flex;align-items:center;gap:8px;}
-.rtitle-icon{font-size:20px;animation:spinIn .4s ease;}
-@keyframes spinIn{from{transform:rotate(-20deg) scale(.8);}to{transform:rotate(0) scale(1);}}
-.rrow{display:flex;gap:10px;margin-bottom:8px;}
-.rk{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);
-width:64px;flex-shrink:0;text-transform:uppercase;}
+.rcard{margin-top:12px;background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.2);border-radius:9px;padding:14px;display:none;}
+.rcard.show{display:block;}
+.rtitle{font-size:12px;font-weight:600;color:var(--green);margin-bottom:10px;}
+.rrow{display:flex;gap:8px;margin-bottom:6px;}
+.rk{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);width:64px;flex-shrink:0;padding-top:1px;}
 .rv{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--white);word-break:break-all;}
-.rlinks{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
-.rl{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:6px 14px;
-border:1px solid var(--b2);border-radius:6px;color:var(--text2);text-decoration:none;
-cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.rlinks{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.rl{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:4px 10px;border:1px solid var(--b2);border-radius:4px;color:var(--text2);text-decoration:none;cursor:pointer;transition:all .15s;}
 .rl:hover{border-color:var(--green);color:var(--green);}
-.rl.twitter{border-color:rgba(29,161,242,.4);color:#1DA1F2;background:rgba(29,161,242,.06);}
-.rl.twitter:hover{border-color:#1DA1F2;}
-.rl.primary{border-color:rgba(0,255,136,.4);color:var(--green);background:rgba(0,255,136,.06);}
-
-/* VAULT */
-.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
-.fb{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:6px 14px;
-border-radius:20px;border:1px solid var(--b2);background:var(--sur);
-color:var(--text2);cursor:pointer;transition:all .2s;}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.fb{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--b2);background:var(--sur);color:var(--text2);cursor:pointer;transition:all .15s;}
 .fb.active{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.06);}
-.sb{margin-left:auto;width:200px;padding:7px 13px;font-size:12px;}
-.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
-.mc{background:var(--card);border:1px solid var(--b1);border-radius:12px;
-overflow:hidden;cursor:pointer;transition:all .25s;position:relative;}
-.mc:hover{border-color:var(--b2);transform:translateY(-4px);
-box-shadow:0 12px 32px rgba(0,0,0,.5);}
+.sb{margin-left:auto;width:180px;padding:6px 12px;font-size:12px;}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.mc{background:var(--card);border:1px solid var(--b1);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;}
+.mc:hover{border-color:var(--b2);transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.4);}
 .mc-img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--sur);}
-.mc-body{padding:14px;}
-.tbadge{display:inline-flex;align-items:center;gap:5px;font-family:"IBM Plex Mono",monospace;
-font-size:9px;font-weight:700;padding:3px 8px;border-radius:5px;
-margin-bottom:10px;text-transform:uppercase;}
-.mname{font-size:14px;font-weight:600;color:var(--white);margin-bottom:5px;
-overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mprev{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);
-line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;
--webkit-box-orient:vertical;margin-bottom:10px;}
-.mfoot{display:flex;align-items:center;justify-content:space-between;
-padding-top:10px;border-top:1px solid var(--b1);}
+.mc-body{padding:12px;}
+.tbadge{display:inline-flex;align-items:center;gap:4px;font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;margin-bottom:8px;text-transform:uppercase;}
+.mname{font-size:13px;font-weight:600;color:var(--white);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mprev{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--text2);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:8px;}
+.mfoot{display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--b1);}
 .mtime{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text3);}
-.mchain{font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:700;
-display:flex;align-items:center;gap:4px;}
-.mchain.onchain{color:var(--green);}
-.mchain.demo{color:var(--text3);}
-.chain-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
-.empty-v{grid-column:1/-1;text-align:center;padding:80px 20px;}
-.empty-v-icon{font-size:48px;opacity:.2;margin-bottom:16px;}
-.empty-v p{font-family:"IBM Plex Mono",monospace;font-size:12px;
-color:var(--text3);line-height:1.8;}
-
-/* STATS */
-.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
-.sc{background:var(--card);border:1px solid var(--b1);border-radius:12px;
-padding:18px;transition:all .2s;}
-.sc:hover{border-color:var(--b2);transform:translateY(-2px);}
-.slbl{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text2);
-text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
-.sval{font-size:26px;font-weight:700;color:var(--white);letter-spacing:-1px;}
-.ssub{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text3);margin-top:5px;}
-
-/* API */
-.asec{background:var(--card);border:1px solid var(--b1);border-radius:12px;
-padding:20px;margin-bottom:16px;}
-.atitle{font-size:14px;font-weight:700;color:var(--white);margin-bottom:4px;}
-.adesc{font-size:12px;color:var(--text2);margin-bottom:14px;}
-.cblock{background:var(--bg);border:1px solid var(--b1);border-radius:8px;
-padding:16px;font-family:"IBM Plex Mono",monospace;font-size:11px;
-line-height:1.8;overflow-x:auto;position:relative;white-space:pre;color:var(--text);}
-.cbtn{position:absolute;top:10px;right:10px;font-family:"IBM Plex Mono",monospace;
-font-size:10px;padding:4px 10px;background:var(--b1);border:1px solid var(--b2);
-border-radius:4px;color:var(--text2);cursor:pointer;transition:all .15s;}
+.empty-v{grid-column:1/-1;text-align:center;padding:60px;color:var(--text3);}
+.empty-v p{font-family:"IBM Plex Mono",monospace;font-size:12px;margin-top:12px;}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.sc{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:16px;}
+.slbl{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.sval{font-size:24px;font-weight:700;color:var(--white);letter-spacing:-1px;}
+.ssub{font-family:"IBM Plex Mono",monospace;font-size:9px;color:var(--text3);margin-top:4px;}
+.asec{background:var(--card);border:1px solid var(--b1);border-radius:10px;padding:18px;margin-bottom:14px;}
+.atitle{font-size:13px;font-weight:700;color:var(--white);margin-bottom:4px;}
+.adesc{font-size:12px;color:var(--text2);margin-bottom:12px;}
+.cblock{background:var(--bg);border:1px solid var(--b1);border-radius:7px;padding:14px;font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.7;overflow-x:auto;position:relative;white-space:pre;color:var(--text);}
+.cbtn{position:absolute;top:8px;right:8px;font-family:"IBM Plex Mono",monospace;font-size:10px;padding:3px 8px;background:var(--b1);border:1px solid var(--b2);border-radius:3px;color:var(--text2);cursor:pointer;}
 .cbtn:hover{color:var(--green);}
-
-/* MODAL */
-.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);
-z-index:100;display:none;align-items:center;justify-content:center;padding:20px;}
-.moverlay.open{display:flex;animation:fadeIn .2s ease;}
-.mdlg{background:var(--card);border:1px solid var(--b2);border-radius:16px;
-max-width:600px;width:100%;max-height:88vh;overflow-y:auto;
-animation:modalIn .25s cubic-bezier(.34,1.56,.64,1);}
-.mhdr{padding:18px 22px;border-bottom:1px solid var(--b1);
-display:flex;align-items:center;justify-content:space-between;
-position:sticky;top:0;background:var(--card);z-index:1;}
-.mbdy{padding:22px;}
-.mclose{background:none;border:none;color:var(--text2);font-size:20px;
-cursor:pointer;line-height:1;width:32px;height:32px;display:flex;
-align-items:center;justify-content:center;border-radius:6px;transition:all .15s;}
-.mclose:hover{color:var(--white);background:var(--b1);}
-.modal-img{width:100%;border-radius:10px;margin-bottom:16px;}
-.mcontent{font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.8;
-color:var(--text);background:var(--bg);padding:14px;border-radius:8px;
-border:1px solid var(--b1);white-space:pre-wrap;word-break:break-word;
-max-height:260px;overflow-y:auto;margin-bottom:16px;}
-
-/* TYPE COLORS */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;}
+.moverlay.open{display:flex;}
+.mdlg{background:var(--card);border:1px solid var(--b2);border-radius:12px;max-width:580px;width:100%;max-height:85vh;overflow-y:auto;}
+.mhdr{padding:16px 20px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
+.mbdy{padding:20px;}
+.mclose{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;line-height:1;}
+.modal-img{width:100%;border-radius:7px;margin-bottom:14px;}
+.mcontent{font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.7;color:var(--text);background:var(--bg);padding:12px;border-radius:7px;border:1px solid var(--b1);white-space:pre-wrap;word-break:break-word;max-height:240px;overflow-y:auto;margin-bottom:14px;}
 .t-reasoning{background:rgba(14,165,233,.12);color:#0EA5E9;border:1px solid rgba(14,165,233,.3);}
 .t-image{background:rgba(168,85,247,.12);color:#A855F7;border:1px solid rgba(168,85,247,.3);}
 .t-log{background:rgba(0,255,136,.12);color:#00FF88;border:1px solid rgba(0,255,136,.3);}
@@ -371,87 +149,38 @@ max-height:260px;overflow-y:auto;margin-bottom:16px;}
 .t-research{background:rgba(234,179,8,.12);color:#EAB308;border:1px solid rgba(234,179,8,.3);}
 .t-checkpoint{background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.3);}
 .t-file{background:rgba(6,182,212,.12);color:#06B6D4;border:1px solid rgba(6,182,212,.3);}
-
-/* MOBILE NAV */
-.mobnav{display:none;position:fixed;bottom:0;left:0;right:0;height:62px;
-background:rgba(3,5,10,.98);border-top:1px solid var(--b1);
-backdrop-filter:blur(20px);z-index:50;}
+.mobnav{display:none;position:fixed;bottom:0;left:0;right:0;height:58px;background:rgba(8,13,20,.97);border-top:1px solid var(--b1);z-index:50;}
 .mobnav-inner{display:flex;height:100%;}
-.mni{flex:1;display:flex;flex-direction:column;align-items:center;
-justify-content:center;gap:3px;cursor:pointer;color:var(--text2);
-font-family:"IBM Plex Mono",monospace;font-size:9px;transition:all .2s;
--webkit-tap-highlight-color:transparent;}
-.mni.active{color:var(--green);}
-.mni-icon{font-size:18px;}
-
-::-webkit-scrollbar{width:4px;height:4px;}
+.mni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:var(--text2);font-family:"IBM Plex Mono",monospace;font-size:9px;transition:color .15s;}
+.mni.active,.mni:hover{color:var(--green);}
+.mni-icon{font-size:17px;}
+::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
-
 @media(max-width:768px){
   .sidebar{display:none;}
   .mobnav{display:block;}
-  .main{width:100%;}
-  .panel{padding:16px 14px 80px;}
-  .type-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
-  .tcard{padding:12px 8px;}
+  .main{padding-bottom:60px;}
+  .panel{padding:16px 14px;}
+  .type-grid{grid-template-columns:repeat(2,1fr);}
   .g2{grid-template-columns:1fr;}
   .sgrid{grid-template-columns:repeat(2,1fr);}
-  .mgrid{grid-template-columns:1fr;}
-  .toolbar{gap:6px;}
-  .fb{font-size:10px;padding:5px 10px;}
-  .sb{width:100%;margin-left:0;margin-top:4px;}
-  input,textarea{font-size:16px;}
-  .wallet-addr{display:none!important;}
 }
 </style>
 </head>
 <body>
-<canvas id="matrix-canvas"></canvas>
-
-<!-- CONNECT OVERLAY -->
-<div class="connect-overlay" id="connectOverlay">
-  <div class="connect-card">
-    <div class="connect-logo">🧠</div>
-    <div class="connect-title">ShelbyVault 2.0</div>
-    <div class="connect-sub">Connect your Petra wallet to store AI memories permanently on Shelby Protocol — Aptos blockchain.</div>
-    <div class="connect-features">
-      <div class="cf"><div class="cf-icon">⛓</div><div class="cf-title">On-chain forever</div><div class="cf-desc">Every memory stored permanently on Aptos</div></div>
-      <div class="cf"><div class="cf-icon">🧠</div><div class="cf-title">7 memory types</div><div class="cf-desc">Reasoning, images, logs, decisions and more</div></div>
-      <div class="cf"><div class="cf-icon">🔒</div><div class="cf-title">Your wallet</div><div class="cf-desc">Your keys, your memories, your vault</div></div>
-      <div class="cf"><div class="cf-icon">⚡</div><div class="cf-title">Agent API</div><div class="cf-desc">Any AI agent can store memories via HTTP</div></div>
-    </div>
-    <button class="connect-petra-btn" id="connectPetraBtn">💰 Connect Petra Wallet</button>
-    <div class="no-petra" id="noPetraMsg" style="display:none;">
-      Don't have Petra? <a href="https://petra.app" target="_blank">Install it free at petra.app</a>
-    </div>
-    <div class="connect-skip" id="skipConnectBtn">Skip for now (demo mode)</div>
-  </div>
-</div>
-
-<!-- TOPBAR -->
 <div class="topbar">
   <div class="brand">
     <div class="brand-logo">🧠</div>
     <div class="brand-name">Shelby<span>Vault</span></div>
     <span class="bv">v2.0</span>
   </div>
-  <div class="topright">
+  <div style="display:flex;align-items:center;gap:12px;">
     <span class="mem-count">Memories: <span id="memCount">0</span></span>
-    <span class="wallet-addr" id="walletAddr"></span>
-    <button class="wallet-btn disconnected" id="walletBtn">💰 Connect Wallet</button>
     <div class="status-pill"><div class="dot"></div>SHELBY TESTNET</div>
   </div>
 </div>
-
-<!-- LAYOUT -->
 <div class="layout">
   <div class="sidebar">
-    <!-- WALLET INFO -->
-    <div class="sidebar-wallet" id="sideWallet" style="display:none;">
-      <div class="sw-label">Connected Wallet</div>
-      <div class="sw-addr" id="sideWalletAddr"></div>
-      <div class="sw-disconnect" id="sideDisconnect">Disconnect</div>
-    </div>
     <div class="s-sec">
       <span class="s-label">Navigation</span>
       <div class="s-item active" data-panel="store"><span class="s-icon">+</span>Store Memory</div>
@@ -471,7 +200,6 @@ font-family:"IBM Plex Mono",monospace;font-size:9px;transition:all .2s;
     </div>
   </div>
   <div class="main">
-    <!-- STORE -->
     <div class="panel active" id="panel-store">
       <div class="p-title">Store New Memory</div>
       <div class="p-sub">Save AI reasoning, outputs, logs, decisions and files permanently on Shelby Protocol</div>
@@ -484,18 +212,21 @@ font-family:"IBM Plex Mono",monospace;font-size:9px;transition:all .2s;
         <div class="tcard" data-type="checkpoint"><div class="tcard-icon">💾</div><div class="tcard-name">Checkpoint</div><div class="tcard-desc">State snapshot</div></div>
         <div class="tcard" data-type="file"><div class="tcard-icon">📁</div><div class="tcard-name">File</div><div class="tcard-desc">Any file type</div></div>
       </div>
-      <div class="g2" style="margin-bottom:16px;">
+      <div class="g2" style="margin-bottom:14px;">
         <div class="field"><label class="flabel">Memory Name / Key</label><input id="memName" type="text" placeholder="e.g. agent-decision-001"/></div>
-        <div class="field"><label class="flabel">Tags (comma separated)</label><input id="memTags" type="text" placeholder="e.g. production, autonomous"/></div>
+        <div class="field"><label class="flabel">Agent ID (optional)</label><input id="agentId" type="text" placeholder="e.g. gpt-4, claude-3"/></div>
       </div>
       <div id="dynFields"></div>
+      <div class="field" style="margin-bottom:14px;">
+        <label class="flabel">Tags (comma separated)</label>
+        <input id="memTags" type="text" placeholder="e.g. production, autonomous, milestone"/>
+      </div>
       <button class="store-btn" id="storeBtn">
         <span id="btnIcon">🧠</span><span id="btnText">Store Memory on Shelby</span>
       </button>
       <div class="plog" id="plog"></div>
       <div class="rcard" id="rcard"></div>
     </div>
-    <!-- VAULT -->
     <div class="panel" id="panel-vault">
       <div class="p-title">Memory Vault</div>
       <div class="p-sub">All memories stored on Shelby Protocol</div>
@@ -507,22 +238,20 @@ font-family:"IBM Plex Mono",monospace;font-size:9px;transition:all .2s;
         <button class="fb" data-vf="decision">⚡ Decision</button>
         <button class="fb" data-vf="research">🔬 Research</button>
         <button class="fb" data-vf="file">📁 File</button>
-        <input class="sb" id="vaultSearch" type="text" placeholder="Search memories..."/>
+        <input class="sb" id="vaultSearch" type="text" placeholder="Search..."/>
       </div>
       <div class="mgrid" id="memories"></div>
     </div>
-    <!-- STATS -->
     <div class="panel" id="panel-stats">
       <div class="p-title">Vault Statistics</div>
       <div class="p-sub">Overview of your AI memory storage</div>
       <div class="sgrid" id="statsGrid"></div>
       <div class="asec">
-        <div class="atitle">Your Wallet</div>
-        <div class="adesc">Connected Aptos wallet address</div>
-        <div class="cblock" id="statsWallet">Not connected</div>
+        <div class="atitle">Storage Address</div>
+        <div class="adesc">Your Shelby wallet on Aptos Testnet</div>
+        <div class="cblock">0x18d06e7fc631aa48ec21e6b66039699e3dd1a17697dc3751eb80c8b00b97ac94</div>
       </div>
     </div>
-    <!-- API -->
     <div class="panel" id="panel-api">
       <div class="p-title">Agent API</div>
       <div class="p-sub">Let any AI agent store memories via HTTP POST</div>
@@ -558,8 +287,6 @@ requests.post('https://shelbyvault2.vercel.app/api/upload', json={
     </div>
   </div>
 </div>
-
-<!-- MOBILE NAV -->
 <div class="mobnav">
   <div class="mobnav-inner">
     <div class="mni active" data-panel="store"><div class="mni-icon">+</div>Store</div>
@@ -568,8 +295,6 @@ requests.post('https://shelbyvault2.vercel.app/api/upload', json={
     <div class="mni" data-panel="api"><div class="mni-icon">⌁</div>API</div>
   </div>
 </div>
-
-<!-- MODAL -->
 <div class="moverlay" id="moverlay">
   <div class="mdlg">
     <div class="mhdr">
@@ -579,8 +304,8 @@ requests.post('https://shelbyvault2.vercel.app/api/upload', json={
     <div class="mbdy" id="mbdy"></div>
   </div>
 </div>
-
 <script>
+
 var mems = [];
 var curType = "reasoning";
 var vf = "all";
@@ -588,9 +313,8 @@ var genB64 = null;
 var fileB64 = null;
 var fileName = null;
 var logStatus = "success";
-var walletAddress = null;
-var walletConnected = false;
 
+// FIX 1: All string literals now use consistent double quotes
 var TYPES = {
   reasoning:  { icon: "🧠", label: "Store Reasoning" },
   image:      { icon: "🎨", label: "Store Image" },
@@ -603,299 +327,37 @@ var TYPES = {
 
 try { mems = JSON.parse(localStorage.getItem("sv2") || "[]"); } catch(e) { mems = []; }
 
-// ── MATRIX RAIN ──────────────────────────────────────────────────────────────
-function initMatrix() {
-  var canvas = document.getElementById("matrix-canvas");
-  if (!canvas) return;
-  var ctx = canvas.getContext("2d");
-  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  resize();
-  window.addEventListener("resize", resize);
-  var cols = Math.floor(window.innerWidth / 20);
-  var drops = Array(cols).fill(1);
-  var chars = "01アイウエオカキクケコ";
-  setInterval(function() {
-    ctx.fillStyle = "rgba(3,5,10,0.05)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#00FF88";
-    ctx.font = "14px monospace";
-    drops.forEach(function(y, i) {
-      var char = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillText(char, i * 20, y * 20);
-      if (y * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
-    });
-  }, 60);
-}
+document.querySelectorAll("[data-panel]").forEach(el => {
+  el.addEventListener("click", () => goPanel(el.getAttribute("data-panel")));
+});
 
-// ── WALLET ────────────────────────────────────────────────────────────────────
-// Petra v5+ ONLY supports AIP-62. window.aptos/petra throw "deprecated" — do NOT use.
-var petraWallet = null;
-
-// Scan AIP-62 registry for Petra — safe to call anytime after wallet-standard loads
-// ── WALLET DETECTION ─────────────────────────────────────────────────────────
-// Does NOT rely on @aptos-labs/wallet-standard npm package.
-// Uses the raw wallet-standard protocol that Petra v5 implements natively:
-// wallets register by dispatching "wallet-standard:register-wallet" on window,
-// and the host app responds with "wallet-standard:app-ready" to collect them.
-var _registeredWallets = [];
-
-(function() {
-  // Step 1: listen for wallets that register AFTER this script runs
-  window.addEventListener("wallet-standard:register-wallet", function(e) {
-    try {
-      var register = e.detail;
-      if (typeof register === "function") {
-        register({
-          register: function(wallet) {
-            console.log("[SV] wallet-standard:register-wallet →", wallet.name);
-            _registeredWallets.push(wallet);
-          }
-        });
-      }
-    } catch(err) { console.warn("[SV] register-wallet error:", err); }
+// FIX 2: Sidebar type-filter now syncs the vault toolbar active state
+document.querySelectorAll("[data-filter]").forEach(el => {
+  el.addEventListener("click", () => {
+    vf = el.getAttribute("data-filter");
+    document.querySelectorAll("[data-vf]").forEach(b => b.classList.remove("active"));
+    const matchBtn = document.querySelector(`[data-vf="${vf}"]`);
+    if (matchBtn) matchBtn.classList.add("active");
+    goPanel("vault");
   });
-
-  // Step 2: dispatch "wallet-standard:app-ready" to collect wallets already registered
-  try {
-    var evt = new CustomEvent("wallet-standard:app-ready", {
-      bubbles: true,
-      detail: {
-        register: function(wallet) {
-          console.log("[SV] app-ready collected →", wallet.name);
-          _registeredWallets.push(wallet);
-        }
-      }
-    });
-    window.dispatchEvent(evt);
-  } catch(err) { console.warn("[SV] app-ready dispatch error:", err); }
-})();
-
-function findPetra() {
-  console.log("[SV] findPetra() — _registeredWallets:", _registeredWallets.map(function(w){return w.name;}));
-
-  // Search registered wallets (collected via wallet-standard protocol above)
-  for (var i = 0; i < _registeredWallets.length; i++) {
-    var w = _registeredWallets[i];
-    if (w.name && w.name.toLowerCase().indexOf("petra") > -1) return w;
-  }
-  // Use any registered wallet if only one (common case — user has one wallet)
-  if (_registeredWallets.length === 1) {
-    console.log("[SV] Using sole registered wallet:", _registeredWallets[0].name);
-    return _registeredWallets[0];
-  }
-  if (_registeredWallets.length > 1) {
-    // Pick the first with aptos:connect
-    for (var j = 0; j < _registeredWallets.length; j++) {
-      if (_registeredWallets[j].features && _registeredWallets[j].features["aptos:connect"]) {
-        console.log("[SV] Using first wallet with aptos:connect:", _registeredWallets[j].name);
-        return _registeredWallets[j];
-      }
-    }
-  }
-
-  console.log("[SV] No wallet in _registeredWallets, checking window properties...");
-
-  // Fallback: scan window for any AIP-62 wallet object
-  var candidates = ["petra", "Petra", "aptos", "AptosWallet", "PetraWallet"];
-  for (var k = 0; k < candidates.length; k++) {
-    try {
-      var obj = window[candidates[k]];
-      if (obj && typeof obj === "object" && obj.features && obj.features["aptos:connect"]) {
-        console.log("[SV] Found AIP-62 wallet on window." + candidates[k]);
-        return obj;
-      }
-    } catch(e) {}
-  }
-
-  console.log("[SV] findPetra: nothing found");
-  return null;
-}
-
-function resolveFn(feature, methodName) {
-  if (!feature) return null;
-  if (feature[methodName] && typeof feature[methodName] === "function") return feature[methodName].bind(feature);
-  if (typeof feature === "function") return feature;
-  return null;
-}
-
-function isUserRejection(e) {
-  var m = ((e && e.message) ? e.message : String(e)).toLowerCase();
-  return m.indexOf("reject") > -1 || m.indexOf("cancel") > -1 ||
-         m.indexOf("denied") > -1 || m.indexOf("declined") > -1;
-}
-
-function showConnectError(msg) {
-  var btn = document.getElementById("connectPetraBtn");
-  var sub = document.querySelector(".connect-sub");
-  btn.disabled = false;
-  btn.textContent = "💰 Connect Petra Wallet";
-  if (sub) {
-    sub.style.color = "var(--red)";
-    sub.textContent = "⚠ " + msg;
-    setTimeout(function() {
-      sub.style.color = "";
-      sub.textContent = "Connect your Petra wallet to store AI memories permanently on Shelby Protocol — Aptos blockchain.";
-    }, 5000);
-  }
-}
-
-async function connectWallet() {
-  var btn = document.getElementById("connectPetraBtn");
-  if (btn.disabled) return;
-  btn.disabled = true;
-  btn.textContent = "Detecting...";
-
-  // Full diagnostic — open F12 Console to see these
-  console.log("[SV] === Connect clicked ===");
-  console.log("[SV] getAptosWallets type:", typeof getAptosWallets);
-  try {
-    if (typeof getAptosWallets === "function") {
-      var _reg = getAptosWallets();
-      var _list = _reg && _reg.aptosWallets ? Array.from(_reg.aptosWallets) : [];
-      console.log("[SV] Registered wallets:", _list.map(function(w){return w.name + " features:" + Object.keys(w.features||{}).join(",");}));
-    }
-  } catch(_e) { console.warn("[SV] getAptosWallets threw:", _e); }
-  console.log("[SV] window.aptos:", typeof window.aptos, window.aptos ? Object.keys(window.aptos) : "");
-  console.log("[SV] window.petra:", typeof window.petra);
-  console.log("[SV] window.aptosWallets:", typeof window.aptosWallets);
-
-  btn.textContent = "Connecting...";
-  var wallet = findPetra();
-  console.log("[SV] findPetra():", wallet ? (wallet.name + " features:" + Object.keys(wallet.features||{}).join(",")) : "null");
-
-  if (!wallet) {
-    btn.disabled = false;
-    btn.textContent = "💰 Connect Petra Wallet";
-    document.getElementById("noPetraMsg").style.display = "block";
-    showConnectError("Petra not found — open F12 Console, click again, and paste logs to developer.");
-    return;
-  }
-
-  // AIP-62 only — Petra v5 deprecated window.aptos entirely
-  try {
-    petraWallet = wallet;
-    var feat = wallet.features["aptos:connect"];
-    console.log("[SV] aptos:connect feature:", feat, "type:", typeof feat);
-    if (!feat) throw new Error("aptos:connect missing from Petra");
-    var connectFn = resolveFn(feat, "connect");
-    console.log("[SV] connectFn:", typeof connectFn);
-    if (!connectFn) throw new Error("aptos:connect not callable");
-    var output = await connectFn();
-    console.log("[SV] connect output:", output);
-    // Petra returns either:
-    //   {accounts: [WalletAccount]} — AIP-62 spec
-    //   {args: WalletAccount, status: 'Approved'} — Petra's actual implementation
-    //   {address, publicKey} — very old builds
-    var account = null;
-    if (output && output.accounts && output.accounts.length) {
-      account = output.accounts[0];
-    } else if (output && output.args) {
-      account = output.args;
-    } else if (output && output.address) {
-      account = output;
-    }
-    if (!account) throw new Error("No account in connect response: " + JSON.stringify(output));
-    var rawAddr = account.address || account;
-    walletAddress = (rawAddr && typeof rawAddr.toString === "function") ? rawAddr.toString() : String(rawAddr);
-    if (!walletAddress || walletAddress === "[object Object]") throw new Error("Could not read address from: " + JSON.stringify(account));
-    walletConnected = true;
-    onWalletConnected();
-  } catch(e) {
-    console.error("[SV] Connect error:", e);
-    btn.disabled = false;
-    btn.textContent = "💰 Connect Petra Wallet";
-    if (!isUserRejection(e)) {
-      showConnectError("Connect failed: " + (e.message || "unknown error").slice(0, 120));
-    }
-  }
-}
-
-function onWalletConnected() {
-  document.getElementById("connectOverlay").classList.add("hidden");
-  var short = walletAddress.slice(0,6) + "..." + walletAddress.slice(-4);
-  var walletBtn = document.getElementById("walletBtn");
-  walletBtn.textContent = short;
-  walletBtn.className = "wallet-btn connected";
-  document.getElementById("walletAddr").textContent = walletAddress;
-  document.getElementById("walletAddr").classList.add("show");
-  document.getElementById("sideWallet").style.display = "block";
-  document.getElementById("sideWalletAddr").textContent = short;
-  localStorage.setItem("sv2_wallet", walletAddress);
-  updateCounts();
-}
-
-async function disconnectWallet() {
-  try {
-    if (petraWallet && petraWallet.features["aptos:disconnect"]) {
-      var df = petraWallet.features["aptos:disconnect"];
-      var disconnectFn = (df && typeof df.disconnect === "function") ? df.disconnect.bind(df)
-                       : (typeof df === "function") ? df : null;
-      if (disconnectFn) await disconnectFn();
-    }
-  } catch(e) {}
-  walletAddress = null; walletConnected = false; petraWallet = null;
-  var walletBtn = document.getElementById("walletBtn");
-  walletBtn.textContent = "Connect Wallet";
-  walletBtn.className = "wallet-btn disconnected";
-  document.getElementById("walletAddr").classList.remove("show");
-  document.getElementById("sideWallet").style.display = "none";
-  localStorage.removeItem("sv2_wallet");
-  document.getElementById("connectOverlay").classList.remove("hidden");
-}
-
-// Silent auto-reconnect — called after wallet-standard has loaded
-async function checkWalletOnLoad() {
-  var wallet = findPetra();
-  if (!wallet) return;
-
-  try {
-    petraWallet = wallet;
-    var feat = wallet.features["aptos:connect"];
-    var connectFn = resolveFn(feat, "connect");
-    if (!connectFn) return;
-    var output = await connectFn({ silent: true });
-    var account = null;
-    if (output && output.accounts && output.accounts.length) {
-      account = output.accounts[0];
-    } else if (output && output.args) {
-      account = output.args;
-    } else if (output && output.address) {
-      account = output;
-    }
-    if (account) {
-      var rawAddr = account.address || account;
-      var addr = (rawAddr && typeof rawAddr.toString === "function") ? rawAddr.toString() : String(rawAddr);
-      if (addr && addr !== "[object Object]") {
-        walletAddress = addr;
-        walletConnected = true;
-        onWalletConnected();
-      }
-    }
-  } catch(e) { /* not previously authorized — fine */ }
-}
-
-// ── NAV ───────────────────────────────────────────────────────────────────────
-document.querySelectorAll("[data-panel]").forEach(function(el) {
-  el.addEventListener("click", function() { goPanel(this.getAttribute("data-panel")); });
 });
-document.querySelectorAll("[data-filter]").forEach(function(el) {
-  el.addEventListener("click", function() { vf = this.getAttribute("data-filter"); goPanel("vault"); });
-});
-document.querySelectorAll("[data-vf]").forEach(function(el) {
-  el.addEventListener("click", function() {
-    vf = this.getAttribute("data-vf");
-    document.querySelectorAll("[data-vf]").forEach(function(b) { b.classList.remove("active"); });
-    this.classList.add("active");
+
+document.querySelectorAll("[data-vf]").forEach(el => {
+  el.addEventListener("click", () => {
+    vf = el.getAttribute("data-vf");
+    document.querySelectorAll("[data-vf]").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
     renderVault();
   });
 });
-document.getElementById("vaultSearch").addEventListener("input", function() { renderVault(); });
-document.querySelectorAll(".tcard").forEach(function(el) {
-  el.addEventListener("click", function() {
-    document.querySelectorAll(".tcard").forEach(function(c) { c.classList.remove("active"); });
-    this.classList.add("active");
-    curType = this.getAttribute("data-type");
+
+document.getElementById("vaultSearch").addEventListener("input", () => renderVault());
+
+document.querySelectorAll(".tcard").forEach(el => {
+  el.addEventListener("click", () => {
+    document.querySelectorAll(".tcard").forEach(c => c.classList.remove("active"));
+    el.classList.add("active");
+    curType = el.getAttribute("data-type");
     genB64 = null; fileB64 = null; fileName = null;
     document.getElementById("btnIcon").textContent = TYPES[curType].icon;
     document.getElementById("btnText").textContent = TYPES[curType].label;
@@ -904,448 +366,495 @@ document.querySelectorAll(".tcard").forEach(function(el) {
     document.getElementById("rcard").classList.remove("show");
   });
 });
+
 document.getElementById("storeBtn").addEventListener("click", storeMemory);
-document.getElementById("walletBtn").addEventListener("click", function() {
-  if (walletConnected) disconnectWallet();
-  else document.getElementById("connectOverlay").classList.remove("hidden");
-});
-document.getElementById("connectPetraBtn").addEventListener("click", connectWallet);
-document.getElementById("skipConnectBtn").addEventListener("click", function() {
-  document.getElementById("connectOverlay").classList.add("hidden");
-});
-document.getElementById("sideDisconnect").addEventListener("click", disconnectWallet);
-document.querySelectorAll("[data-copy]").forEach(function(el) {
-  el.addEventListener("click", function() {
-    var id = this.getAttribute("data-copy");
-    var text = document.getElementById(id).innerText.replace(/^copy\n?|^copied!\n?/, "").trim();
+
+// FIX 3: Copy button now clones the element and removes the button before reading text
+document.querySelectorAll("[data-copy]").forEach(el => {
+  el.addEventListener("click", () => {
+    const id = el.getAttribute("data-copy");
+    const clone = document.getElementById(id).cloneNode(true);
+    clone.querySelector(".cbtn") && clone.querySelector(".cbtn").remove();
+    const text = clone.innerText.trim();
     navigator.clipboard.writeText(text);
-    this.textContent = "copied!";
-    var self = this;
-    setTimeout(function() { self.textContent = "copy"; }, 1500);
+    el.textContent = "copied!";
+    setTimeout(() => el.textContent = "copy", 1500);
   });
 });
+
 document.getElementById("mcloseBtn").addEventListener("click", closeModal);
-document.getElementById("moverlay").addEventListener("click", function(e) {
-  if (e.target.id === "moverlay") closeModal();
-});
+document.getElementById("moverlay").addEventListener("click", e => { if (e.target.id === "moverlay") closeModal(); });
 
 function goPanel(name) {
-  document.querySelectorAll(".panel").forEach(function(p) { p.classList.remove("active"); });
-  document.querySelectorAll("[data-panel]").forEach(function(el) { el.classList.remove("active"); });
-  var panel = document.getElementById("panel-" + name);
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll("[data-panel]").forEach(el => el.classList.remove("active"));
+  const panel = document.getElementById("panel-" + name);
   if (panel) panel.classList.add("active");
-  document.querySelectorAll("[data-panel=" + name + "]").forEach(function(el) { el.classList.add("active"); });
+  document.querySelectorAll(`[data-panel="${name}"]`).forEach(el => el.classList.add("active"));
   if (name === "vault") renderVault();
   if (name === "stats") renderStats();
 }
 
 function buildDynFields() {
-  var el = document.getElementById("dynFields");
+  const el = document.getElementById("dynFields");
   el.innerHTML = "";
-  var box = document.createElement("div");
+  const box = document.createElement("div");
   box.className = "sbox";
+
   if (curType === "reasoning") {
-    box.innerHTML = "<div class=\"sbox-title\">Reasoning Fields</div>"
-      + "<div class=\"field\"><label class=\"flabel\">Chain of Thought</label>"
-      + "<textarea id=\"f1\" rows=\"6\" placeholder=\"Write out the full reasoning process...\"></textarea></div>"
-      + "<div class=\"g2\" style=\"margin-top:14px;\">"
-      + "<div class=\"field\"><label class=\"flabel\">Conclusion</label>"
-      + "<input id=\"f2\" type=\"text\" placeholder=\"Final conclusion reached\"/></div>"
-      + "<div class=\"field\"><label class=\"flabel\">Confidence</label>"
-      + "<div class=\"conf-row\"><input type=\"range\" class=\"conf-range\" id=\"conf1\" min=\"0\" max=\"100\" value=\"80\"/>"
-      + "<span class=\"conf-val\" id=\"cv1\">80%</span></div></div></div>";
+    box.innerHTML = `
+      <div class="sbox-title">Reasoning Fields</div>
+      <div class="field">
+        <label class="flabel">Chain of Thought</label>
+        <textarea id="f1" rows="5" placeholder="Write out the full reasoning process..."></textarea>
+      </div>
+      <div class="g2" style="margin-top:12px;">
+        <div class="field">
+          <label class="flabel">Conclusion</label>
+          <input id="f2" type="text" placeholder="Final conclusion reached"/>
+        </div>
+        <div class="field">
+          <label class="flabel">Confidence</label>
+          <div class="conf-row">
+            <input type="range" class="conf-range" id="conf1" min="0" max="100" value="80"/>
+            <span class="conf-val" id="cv1">80%</span>
+          </div>
+        </div>
+      </div>`;
+
   } else if (curType === "image") {
-    box.innerHTML = "<div class=\"sbox-title\">Image Source</div>"
-      + "<div class=\"img-tabs\"><div class=\"img-tab active\" id=\"tab-gen\">Generate with AI</div>"
-      + "<div class=\"img-tab\" id=\"tab-upload\">Upload local file</div></div>"
-      + "<div class=\"img-pane active\" id=\"imgp-gen\">"
-      + "<div class=\"field\"><label class=\"flabel\">Image Prompt</label>"
-      + "<textarea id=\"f1\" rows=\"3\" placeholder=\"Describe the image...\"></textarea></div>"
-      + "<button class=\"gen-btn\" id=\"genBtn\">Generate with Seedream 3.0</button>"
-      + "<div class=\"gen-preview\" id=\"genPreview\"><div class=\"ph-txt\">Generated image appears here</div></div></div>"
-      + "<div class=\"img-pane\" id=\"imgp-upload\">"
-      + "<div class=\"dropzone\"><input type=\"file\" id=\"imgFileInput\" accept=\"image/*\"/>"
-      + "<div class=\"dz-icon\">&#x1F5BC;</div><div class=\"dz-title\">Drop image or click</div>"
-      + "<div class=\"dz-sub\">PNG, JPG, GIF, WEBP</div></div>"
-      + "<div class=\"finfo\" id=\"imgInfo\"></div></div>"
-      + "<div class=\"field\" style=\"margin-top:14px;\"><label class=\"flabel\">Description (optional)</label>"
-      + "<input id=\"f2\" type=\"text\" placeholder=\"What does this image represent?\"/></div>";
+    box.innerHTML = `
+      <div class="sbox-title">Image Source</div>
+      <div class="img-tabs">
+        <div class="img-tab active" id="tab-gen">Generate with AI</div>
+        <div class="img-tab" id="tab-upload">Upload local file</div>
+      </div>
+      <div class="img-pane active" id="imgp-gen">
+        <div class="field">
+          <label class="flabel">Image Prompt</label>
+          <textarea id="f1" rows="3" placeholder="Describe the image to generate..."></textarea>
+        </div>
+        <button class="gen-btn" id="genBtn">Generate with Seedream 3.0</button>
+        <div class="gen-preview" id="genPreview"><div class="ph-txt">Generated image appears here</div></div>
+      </div>
+      <div class="img-pane" id="imgp-upload">
+        <div class="dropzone">
+          <input type="file" id="imgFileInput" accept="image/*"/>
+          <div class="dz-icon">🖼</div>
+          <div class="dz-title">Drop image or click</div>
+          <div class="dz-sub">PNG, JPG, GIF, WEBP</div>
+        </div>
+        <div class="finfo" id="imgInfo"></div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label class="flabel">Description (optional)</label>
+        <input id="f2" type="text" placeholder="What does this image represent?"/>
+      </div>`;
+
   } else if (curType === "log") {
-    box.innerHTML = "<div class=\"sbox-title\">Log Fields</div>"
-      + "<div class=\"field\"><label class=\"flabel\">Event / Message</label>"
-      + "<textarea id=\"f1\" rows=\"4\" placeholder=\"Describe what happened...\"></textarea></div>"
-      + "<div class=\"g2\" style=\"margin-top:14px;\"><div class=\"field\"><label class=\"flabel\">Status</label>"
-      + "<div class=\"status-row\">"
-      + "<div class=\"sopt sel\" data-s=\"success\">Success</div>"
-      + "<div class=\"sopt\" data-s=\"warning\">Warning</div>"
-      + "<div class=\"sopt\" data-s=\"error\">Error</div>"
-      + "<div class=\"sopt\" data-s=\"info\">Info</div></div></div>"
-      + "<div class=\"field\"><label class=\"flabel\">Timestamp</label>"
-      + "<input id=\"f2\" type=\"text\"/></div></div>";
+    box.innerHTML = `
+      <div class="sbox-title">Log Fields</div>
+      <div class="field">
+        <label class="flabel">Event / Message</label>
+        <textarea id="f1" rows="4" placeholder="Describe what happened..."></textarea>
+      </div>
+      <div class="g2" style="margin-top:12px;">
+        <div class="field">
+          <label class="flabel">Status</label>
+          <div class="status-row">
+            <div class="sopt sel" data-s="success">Success</div>
+            <div class="sopt" data-s="warning">Warning</div>
+            <div class="sopt" data-s="error">Error</div>
+            <div class="sopt" data-s="info">Info</div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="flabel">Timestamp</label>
+          <input id="f2" type="text"/>
+        </div>
+      </div>`;
+
   } else if (curType === "decision") {
-    box.innerHTML = "<div class=\"sbox-title\">Decision Fields</div>"
-      + "<div class=\"field\"><label class=\"flabel\">What was decided</label>"
-      + "<input id=\"f1\" type=\"text\" placeholder=\"The decision that was made\"/></div>"
-      + "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">Why</label>"
-      + "<textarea id=\"f2\" rows=\"3\" placeholder=\"Explain the reasoning...\"></textarea></div>"
-      + "<div class=\"g2\" style=\"margin-top:14px;\">"
-      + "<div class=\"field\"><label class=\"flabel\">Alternatives Considered</label>"
-      + "<input id=\"f3\" type=\"text\" placeholder=\"Option A, Option B...\"/></div>"
-      + "<div class=\"field\"><label class=\"flabel\">Confidence</label>"
-      + "<div class=\"conf-row\"><input type=\"range\" class=\"conf-range\" id=\"conf1\" min=\"0\" max=\"100\" value=\"75\"/>"
-      + "<span class=\"conf-val\" id=\"cv1\">75%</span></div></div></div>";
+    box.innerHTML = `
+      <div class="sbox-title">Decision Fields</div>
+      <div class="field">
+        <label class="flabel">What was decided</label>
+        <input id="f1" type="text" placeholder="The decision that was made"/>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label class="flabel">Why — Reasoning</label>
+        <textarea id="f2" rows="3" placeholder="Explain the reasoning..."></textarea>
+      </div>
+      <div class="g2" style="margin-top:12px;">
+        <div class="field">
+          <label class="flabel">Alternatives Considered</label>
+          <input id="f3" type="text" placeholder="Option A, Option B..."/>
+        </div>
+        <div class="field">
+          <label class="flabel">Confidence</label>
+          <div class="conf-row">
+            <input type="range" class="conf-range" id="conf1" min="0" max="100" value="75"/>
+            <span class="conf-val" id="cv1">75%</span>
+          </div>
+        </div>
+      </div>`;
+
   } else if (curType === "research") {
-    box.innerHTML = "<div class=\"sbox-title\">Research Fields</div>"
-      + "<div class=\"field\"><label class=\"flabel\">Topic</label>"
-      + "<input id=\"f1\" type=\"text\" placeholder=\"What was researched\"/></div>"
-      + "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">Findings</label>"
-      + "<textarea id=\"f2\" rows=\"4\" placeholder=\"Key findings...\"></textarea></div>"
-      + "<div class=\"g2\" style=\"margin-top:14px;\">"
-      + "<div class=\"field\"><label class=\"flabel\">Sources</label>"
-      + "<textarea id=\"f3\" rows=\"3\" placeholder=\"URLs, papers...\"></textarea></div>"
-      + "<div class=\"field\"><label class=\"flabel\">Key Takeaways</label>"
-      + "<textarea id=\"f4\" rows=\"3\" placeholder=\"TL;DR...\"></textarea></div></div>";
+    box.innerHTML = `
+      <div class="sbox-title">Research Fields</div>
+      <div class="field">
+        <label class="flabel">Topic</label>
+        <input id="f1" type="text" placeholder="What was researched"/>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label class="flabel">Findings</label>
+        <textarea id="f2" rows="4" placeholder="Key findings, data points..."></textarea>
+      </div>
+      <div class="g2" style="margin-top:12px;">
+        <div class="field">
+          <label class="flabel">Sources</label>
+          <textarea id="f3" rows="3" placeholder="URLs, papers..."></textarea>
+        </div>
+        <div class="field">
+          <label class="flabel">Key Takeaways</label>
+          <textarea id="f4" rows="3" placeholder="TL;DR..."></textarea>
+        </div>
+      </div>`;
+
   } else if (curType === "checkpoint") {
-    box.innerHTML = "<div class=\"sbox-title\">Checkpoint Fields</div>"
-      + "<div class=\"g2\"><div class=\"field\"><label class=\"flabel\">Model / Agent Name</label>"
-      + "<input id=\"f1\" type=\"text\" placeholder=\"e.g. gpt-4\"/></div>"
-      + "<div class=\"field\"><label class=\"flabel\">Version</label>"
-      + "<input id=\"f2\" type=\"text\" placeholder=\"e.g. v1.2.3\"/></div></div>"
-      + "<div class=\"field\" style=\"margin-top:14px;\"><label class=\"flabel\">State Description</label>"
-      + "<textarea id=\"f3\" rows=\"3\" placeholder=\"Current state, metrics...\"></textarea></div>"
-      + "<div class=\"field\" style=\"margin-top:12px;\"><label class=\"flabel\">Notes</label>"
-      + "<input id=\"f4\" type=\"text\" placeholder=\"Additional notes\"/></div>";
+    box.innerHTML = `
+      <div class="sbox-title">Checkpoint Fields</div>
+      <div class="g2">
+        <div class="field">
+          <label class="flabel">Model / Agent Name</label>
+          <input id="f1" type="text" placeholder="e.g. gpt-4, my-bot"/>
+        </div>
+        <div class="field">
+          <label class="flabel">Version</label>
+          <input id="f2" type="text" placeholder="e.g. v1.2.3"/>
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label class="flabel">State Description</label>
+        <textarea id="f3" rows="3" placeholder="Current state, metrics..."></textarea>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label class="flabel">Notes</label>
+        <input id="f4" type="text" placeholder="Additional notes"/>
+      </div>`;
+
   } else if (curType === "file") {
-    box.innerHTML = "<div class=\"sbox-title\">File Upload</div>"
-      + "<div class=\"dropzone\"><input type=\"file\" id=\"fileInput\"/>"
-      + "<div class=\"dz-icon\">&#x1F4C1;</div><div class=\"dz-title\">Drop any file or click</div>"
-      + "<div class=\"dz-sub\">Image, video, audio, PDF, JSON, ZIP...</div></div>"
-      + "<div class=\"finfo\" id=\"fileInfo\"></div>"
-      + "<div class=\"field\" style=\"margin-top:14px;\"><label class=\"flabel\">Description (optional)</label>"
-      + "<input id=\"f1\" type=\"text\" placeholder=\"What is this file?\"/></div>";
+    box.innerHTML = `
+      <div class="sbox-title">File Upload</div>
+      <div class="dropzone">
+        <input type="file" id="fileInput"/>
+        <div class="dz-icon">📁</div>
+        <div class="dz-title">Drop any file or click</div>
+        <div class="dz-sub">Image, video, audio, PDF, JSON, ZIP...</div>
+      </div>
+      <div class="finfo" id="fileInfo"></div>
+      <div class="field" style="margin-top:12px;">
+        <label class="flabel">Description (optional)</label>
+        <input id="f1" type="text" placeholder="What is this file?"/>
+      </div>`;
   }
+
   el.appendChild(box);
-  var conf = document.getElementById("conf1");
-  if (conf) conf.addEventListener("input", function() {
-    var cv = document.getElementById("cv1");
-    if (cv) cv.textContent = this.value + "%";
+
+  const conf = document.getElementById("conf1");
+  if (conf) conf.addEventListener("input", () => {
+    const cv = document.getElementById("cv1");
+    if (cv) cv.textContent = conf.value + "%";
   });
-  var f2 = document.getElementById("f2");
-  if (curType === "log" && f2) f2.value = new Date().toISOString().slice(0,19).replace("T", " ");
-  var tabGen = document.getElementById("tab-gen");
+
+  const f2 = document.getElementById("f2");
+  if (curType === "log" && f2) f2.value = new Date().toISOString().slice(0,19).replace("T"," ");
+
+  const tabGen = document.getElementById("tab-gen");
   if (tabGen) {
-    tabGen.addEventListener("click", function() { switchImgTab("gen"); });
-    document.getElementById("tab-upload").addEventListener("click", function() { switchImgTab("upload"); });
+    tabGen.addEventListener("click", () => switchImgTab("gen"));
+    document.getElementById("tab-upload").addEventListener("click", () => switchImgTab("upload"));
   }
-  var genBtn = document.getElementById("genBtn");
+
+  const genBtn = document.getElementById("genBtn");
   if (genBtn) genBtn.addEventListener("click", doGenerate);
-  var imgInput = document.getElementById("imgFileInput");
-  if (imgInput) imgInput.addEventListener("change", function() { handleImg(imgInput); });
-  var fileInput = document.getElementById("fileInput");
-  if (fileInput) fileInput.addEventListener("change", function() { handleFile(fileInput); });
-  document.querySelectorAll(".sopt").forEach(function(opt) {
-    opt.addEventListener("click", function() {
-      document.querySelectorAll(".sopt").forEach(function(o) { o.classList.remove("sel"); });
-      this.classList.add("sel");
-      logStatus = this.getAttribute("data-s");
+
+  const imgFileInput = document.getElementById("imgFileInput");
+  if (imgFileInput) imgFileInput.addEventListener("change", () => handleImg(imgFileInput));
+
+  const fileInput = document.getElementById("fileInput");
+  if (fileInput) fileInput.addEventListener("change", () => handleFile(fileInput));
+
+  document.querySelectorAll(".sopt").forEach(opt => {
+    opt.addEventListener("click", () => {
+      document.querySelectorAll(".sopt").forEach(o => o.classList.remove("sel"));
+      opt.classList.add("sel");
+      logStatus = opt.getAttribute("data-s");
     });
   });
 }
 
 function switchImgTab(tab) {
-  var gen = document.getElementById("imgp-gen");
-  var upl = document.getElementById("imgp-upload");
+  const gen = document.getElementById("imgp-gen");
+  const upl = document.getElementById("imgp-upload");
   if (!gen) return;
   gen.classList.toggle("active", tab === "gen");
   upl.classList.toggle("active", tab === "upload");
   document.getElementById("tab-gen").classList.toggle("active", tab === "gen");
   document.getElementById("tab-upload").classList.toggle("active", tab === "upload");
   genB64 = null;
+  // FIX 4: Clear the upload finfo UI when switching back to generate tab
+  if (tab === "gen") {
+    const el = document.getElementById("imgInfo");
+    if (el) el.classList.remove("show");
+  }
 }
 
 function doGenerate() {
-  var f1 = document.getElementById("f1");
+  const f1 = document.getElementById("f1");
   if (!f1 || !f1.value.trim()) { alert("Enter a prompt first"); return; }
-  var btn = document.getElementById("genBtn");
-  var preview = document.getElementById("genPreview");
-  btn.disabled = true; btn.textContent = "Generating...";
-  preview.innerHTML = "<div class=\"ph-txt\">Generating with Seedream 3.0...</div>";
+  const btn = document.getElementById("genBtn");
+  const preview = document.getElementById("genPreview");
+  btn.disabled = true;
+  btn.textContent = "Generating...";
+  preview.innerHTML = `<div class="ph-txt">Generating with Seedream 3.0...</div>`;
   if (typeof puter === "undefined") {
     btn.disabled = false; btn.textContent = "Generate with Seedream 3.0";
-    alert("Puter not loaded yet, try again"); return;
+    alert("Puter not loaded yet, try again in a moment"); return;
   }
   puter.ai.txt2img(f1.value.trim(), { model: "ByteDance-Seed/Seedream-3.0", provider: "together-ai", width: 1024, height: 1024 })
-    .then(function(res) {
-      var url = typeof res === "string" ? res : (res && (res.url || res.src)) || null;
+    .then(res => {
+      let url = typeof res === "string" ? res : (res && (res.url || res.src)) || null;
       if (!url && res instanceof Blob) url = URL.createObjectURL(res);
       if (!url) throw new Error("No image returned");
-      preview.innerHTML = "<img src=\"" + url + "\"/>";
+      preview.innerHTML = `<img src="${url}"/>`;
       return toB64(url);
     })
-    .then(function(b64) {
-      genB64 = b64; btn.classList.add("done");
-      btn.textContent = "Generated — ready to store"; btn.disabled = false;
+    .then(b64 => {
+      genB64 = b64;
+      btn.classList.add("done");
+      // FIX 1 (cont): Consistent double quotes in string literals
+      btn.textContent = "Generated — ready to store";
+      btn.disabled = false;
     })
-    .catch(function(e) {
-      btn.textContent = "Generate with Seedream 3.0"; btn.disabled = false;
+    .catch(e => {
+      btn.textContent = "Generate with Seedream 3.0";
+      btn.disabled = false;
       alert("Failed: " + e.message);
     });
 }
 
 function handleImg(input) {
-  var f = input.files[0]; if (!f) return;
-  var r = new FileReader();
-  r.onload = function(e) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
     genB64 = e.target.result;
-    var el = document.getElementById("imgInfo");
-    el.innerHTML = "<span class=\"fi-icon\">&#x1F5BC;</span><div><div class=\"fi-name\">" + esc(f.name) + "</div><div class=\"fi-size\">" + fmt(f.size) + "</div></div><span class=\"fi-rm\" id=\"imgRm\">✕</span>";
+    // FIX 1 (cont): Consistent double quotes — was getElementById("imgInfo')
+    const el = document.getElementById("imgInfo");
+    el.innerHTML = `<span class="fi-icon">🖼</span><div><div class="fi-name">${esc(f.name)}</div><div class="fi-size">${fmt(f.size)}</div></div><span class="fi-rm" id="imgRm">✕</span>`;
     el.classList.add("show");
-    document.getElementById("imgRm").addEventListener("click", function() { genB64 = null; el.classList.remove("show"); });
+    document.getElementById("imgRm").addEventListener("click", () => { genB64 = null; el.classList.remove("show"); });
   };
   r.readAsDataURL(f);
 }
 
 function handleFile(input) {
-  var f = input.files[0]; if (!f) return;
-  var r = new FileReader();
-  r.onload = function(e) {
-    fileB64 = e.target.result; fileName = f.name;
-    var mn = document.getElementById("memName");
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    fileB64 = e.target.result;
+    fileName = f.name;
+    const mn = document.getElementById("memName");
     if (mn && !mn.value) mn.value = f.name.replace(/\.[^.]+$/, "");
-    var el = document.getElementById("fileInfo");
-    el.innerHTML = "<span class=\"fi-icon\">&#x1F4C1;</span><div><div class=\"fi-name\">" + esc(f.name) + "</div><div class=\"fi-size\">" + fmt(f.size) + "</div></div><span class=\"fi-rm\" id=\"fileRm\">✕</span>";
+    const el = document.getElementById("fileInfo");
+    el.innerHTML = `<span class="fi-icon">📁</span><div><div class="fi-name">${esc(f.name)}</div><div class="fi-size">${fmt(f.size)} — ${f.type || "unknown"}</div></div><span class="fi-rm" id="fileRm">✕</span>`;
     el.classList.add("show");
-    document.getElementById("fileRm").addEventListener("click", function() { fileB64 = null; fileName = null; el.classList.remove("show"); });
+    document.getElementById("fileRm").addEventListener("click", () => { fileB64 = null; fileName = null; el.classList.remove("show"); });
   };
   r.readAsDataURL(f);
 }
 
 function getContent() {
-  var f1 = (document.getElementById("f1") || {}).value || "";
-  var f2 = (document.getElementById("f2") || {}).value || "";
-  var f3 = (document.getElementById("f3") || {}).value || "";
-  var f4 = (document.getElementById("f4") || {}).value || "";
-  var conf = (document.getElementById("conf1") || {}).value || "80";
-  if (curType === "reasoning") return "REASONING:\n" + f1 + "\n\nCONCLUSION:\n" + f2 + "\n\nCONFIDENCE: " + conf + "%";
+  const f1 = (document.getElementById("f1") || {}).value || "";
+  const f2 = (document.getElementById("f2") || {}).value || "";
+  const f3 = (document.getElementById("f3") || {}).value || "";
+  const f4 = (document.getElementById("f4") || {}).value || "";
+  const conf = (document.getElementById("conf1") || {}).value || "80";
+  if (curType === "reasoning") return `REASONING:\n${f1}\n\nCONCLUSION:\n${f2}\n\nCONFIDENCE: ${conf}%`;
   if (curType === "image") return f2 || f1 || "AI Generated Image";
-  if (curType === "log") return "STATUS: " + logStatus.toUpperCase() + "\nTIMESTAMP: " + f2 + "\n\nEVENT:\n" + f1;
-  if (curType === "decision") return "DECISION:\n" + f1 + "\n\nREASONING:\n" + f2 + "\n\nALTERNATIVES: " + f3 + "\n\nCONFIDENCE: " + conf + "%";
-  if (curType === "research") return "TOPIC:\n" + f1 + "\n\nFINDINGS:\n" + f2 + "\n\nSOURCES:\n" + f3 + "\n\nTAKEAWAYS:\n" + f4;
-  if (curType === "checkpoint") return "MODEL: " + f1 + "\nVERSION: " + f2 + "\n\nSTATE:\n" + f3 + "\n\nNOTES: " + f4;
+  if (curType === "log") return `STATUS: ${logStatus.toUpperCase()}\nTIMESTAMP: ${f2}\n\nEVENT:\n${f1}`;
+  if (curType === "decision") return `DECISION:\n${f1}\n\nREASONING:\n${f2}\n\nALTERNATIVES: ${f3}\n\nCONFIDENCE: ${conf}%`;
+  if (curType === "research") return `TOPIC:\n${f1}\n\nFINDINGS:\n${f2}\n\nSOURCES:\n${f3}\n\nTAKEAWAYS:\n${f4}`;
+  if (curType === "checkpoint") return `MODEL: ${f1}\nVERSION: ${f2}\n\nSTATE:\n${f3}\n\nNOTES: ${f4}`;
   if (curType === "file") return f1 || fileName || "Uploaded file";
   return "";
 }
 
 function storeMemory() {
-  if (!walletConnected) {
-    document.getElementById("connectOverlay").classList.remove("hidden");
-    return;
-  }
-  var name = (document.getElementById("memName").value || "").trim();
+  const name = (document.getElementById("memName").value || "").trim();
   if (!name) { alert("Enter a memory name"); return; }
   if (curType === "image" && !genB64) { alert("Generate or upload an image first"); return; }
   if (curType === "file" && !fileB64) { alert("Upload a file first"); return; }
-  var btn = document.getElementById("storeBtn");
-  btn.disabled = true; btn.classList.add("loading");
-  var logEl = document.getElementById("plog");
-  logEl.innerHTML = ""; logEl.classList.add("show");
+
+  const btn = document.getElementById("storeBtn");
+  btn.disabled = true;
+  const logEl = document.getElementById("plog");
+  logEl.innerHTML = "";
+  logEl.classList.add("show");
   document.getElementById("rcard").classList.remove("show");
-  var tags = (document.getElementById("memTags").value || "").split(",").map(function(t) { return t.trim(); }).filter(Boolean);
-  var agentId = walletAddress ? walletAddress.slice(0,10) + "..." : "anonymous";
-  var content = getContent();
-  var safeName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
-  var b64, fn;
-  if (curType === "image") { b64 = genB64; fn = safeName + "_" + Date.now() + ".png"; }
-  else if (curType === "file") { b64 = fileB64; fn = fileName || safeName + "_" + Date.now(); }
-  else { b64 = "data:text/plain;base64," + btoa(unescape(encodeURIComponent(content))); fn = safeName + "_" + Date.now() + ".txt"; }
-  addLog("info", "Wallet: " + walletAddress.slice(0,10) + "...");
-  addLog("info", "Step 1: Registering blob on Aptos...");
-  document.getElementById("btnText").textContent = "Approve in Petra...";
-  signAndStore(b64, fn, name, content, tags, walletAddress, btn);
+
+  const tags = (document.getElementById("memTags").value || "").split(",").map(t => t.trim()).filter(Boolean);
+  const agentId = (document.getElementById("agentId").value || "").trim();
+  const content = getContent();
+  const safeName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+  let b64, fn;
+  if (curType === "image") { b64 = genB64; fn = `${safeName}_${Date.now()}.png`; }
+  else if (curType === "file") { b64 = fileB64; fn = fileName || `${safeName}_${Date.now()}`; }
+  else { b64 = "data:text/plain;base64," + btoa(unescape(encodeURIComponent(content))); fn = `${safeName}_${Date.now()}.txt`; }
+
+  addLog("info", "Connecting to Shelby Protocol...");
+  document.getElementById("btnText").textContent = "Storing...";
+
+  fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageBase64: b64, filename: fn, memoryType: curType, agentId, tags, name })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) throw new Error(data.error || "Failed");
+    addLog("ok", data.demo ? "Stored in demo mode" : "Stored on-chain successfully");
+    const entry = {
+      id: Date.now(), name, filename: fn, type: curType, content,
+      agentId, tags, imgB64: curType === "image" ? genB64 : null,
+      size: data.size, txHash: data.txHash, explorerUrl: data.explorerUrl,
+      aptosUrl: data.aptosUrl, demo: data.demo, ts: Date.now()
+    };
+    mems.unshift(entry);
+    // FIX 5: Log warning on localStorage failure instead of silently swallowing
+    try { localStorage.setItem("sv2", JSON.stringify(mems.slice(0,200))); } catch(e) { console.warn("LocalStorage save failed:", e); }
+    updateCounts();
+    showResult(data, entry);
+  })
+  .catch(e => addLog("err", "Error: " + e.message))
+  .finally(() => {
+    btn.disabled = false;
+    document.getElementById("btnText").textContent = TYPES[curType].label;
+  });
 }
 
 function addLog(type, msg) {
-  var el = document.getElementById("plog");
-  var t = new Date().toLocaleTimeString("en", { hour12: false });
-  var cls = type === "ok" ? "ok" : type === "err" ? "err" : type === "warn" ? "warn" : "info";
-  el.innerHTML += "<div class=\"ll\"><span class=\"lt\">" + t + "</span><span class=\"lm " + cls + "\">" + esc(msg) + "</span></div>";
+  const el = document.getElementById("plog");
+  const t = new Date().toLocaleTimeString("en", { hour12: false });
+  const cls = type === "ok" ? "ok" : type === "err" ? "err" : "info";
+  el.innerHTML += `<div class="ll"><span class="lt">${t}</span><span class="lm ${cls}">${esc(msg)}</span></div>`;
   el.scrollTop = el.scrollHeight;
 }
 
 function showResult(data, entry) {
-  var el = document.getElementById("rcard");
-  el.className = "rcard " + (data.demo ? "demo" : "onchain");
-  var tweetText = encodeURIComponent("Just stored a " + entry.type + " memory on-chain with @ShelbyProtocol\n\n\"" + entry.name + "\"\n\n#ShelbyVault #AIMemory #Aptos");
-  el.innerHTML = "<div class=\"rcard-glow\"></div>"
-    + "<div class=\"rtitle\"><span class=\"rtitle-icon\">✓</span>" + (data.demo ? "Stored (demo)" : "Stored on Shelby Protocol!") + "</div>"
-    + "<div class=\"rrow\"><span class=\"rk\">blob</span><span class=\"rv\">" + esc(entry.filename) + "</span></div>"
-    + "<div class=\"rrow\"><span class=\"rk\">size</span><span class=\"rv\">" + (entry.size || "--") + "</span></div>"
-    + (entry.txHash && !data.demo ? "<div class=\"rrow\"><span class=\"rk\">tx</span><span class=\"rv\">" + entry.txHash + "</span></div>" : "")
-    + "<div class=\"rlinks\">"
-    + (data.explorerUrl ? "<a class=\"rl primary\" href=\"" + data.explorerUrl + "\" target=\"_blank\">Shelby Explorer</a>" : "")
-    + (data.aptosUrl ? "<a class=\"rl\" href=\"" + data.aptosUrl + "\" target=\"_blank\">Aptos Explorer</a>" : "")
-    + "<a class=\"rl twitter\" href=\"https://twitter.com/intent/tweet?text=" + tweetText + "\" target=\"_blank\">♥ Share on X</a>"
-    + "<span class=\"rl\" id=\"goVaultLink\">View Vault</span></div>";
+  const el = document.getElementById("rcard");
+  el.innerHTML = `<div class="rtitle">${data.demo ? "Stored (demo mode)" : "Stored on Shelby Protocol ✓"}</div>
+    <div class="rrow"><span class="rk">blob</span><span class="rv">${esc(entry.filename)}</span></div>
+    <div class="rrow"><span class="rk">size</span><span class="rv">${entry.size || "--"}</span></div>
+    ${entry.txHash && !data.demo ? `<div class="rrow"><span class="rk">tx</span><span class="rv">${entry.txHash}</span></div>` : ""}
+    <div class="rlinks">
+      ${data.explorerUrl ? `<a class="rl" href="${data.explorerUrl}" target="_blank">Shelby Explorer</a>` : ""}
+      ${data.aptosUrl ? `<a class="rl" href="${data.aptosUrl}" target="_blank">Aptos Explorer</a>` : ""}
+      <span class="rl" id="goVaultLink">View Vault</span>
+    </div>`;
   el.classList.add("show");
-  document.getElementById("goVaultLink").addEventListener("click", function() { goPanel("vault"); });
+  document.getElementById("goVaultLink").addEventListener("click", () => goPanel("vault"));
 }
 
 function renderVault() {
-  var search = (document.getElementById("vaultSearch").value || "").toLowerCase();
-  var list = mems.slice();
-  if (vf !== "all") list = list.filter(function(m) { return m.type === vf; });
-  if (search) list = list.filter(function(m) { return (m.name + m.content + m.agentId).toLowerCase().indexOf(search) > -1; });
-  var el = document.getElementById("memories");
+  const search = (document.getElementById("vaultSearch").value || "").toLowerCase();
+  let list = mems;
+  if (vf !== "all") list = list.filter(m => m.type === vf);
+  if (search) list = list.filter(m => (m.name + m.content + m.agentId).toLowerCase().includes(search));
+  const el = document.getElementById("memories");
+  // FIX 1 (cont): Consistent quote chars in template literals
   if (!list.length) {
-    el.innerHTML = "<div class=\"empty-v\"><div class=\"empty-v-icon\">🧠</div><p>No memories yet.<br>Store your first memory above.</p></div>";
+    el.innerHTML = `<div class="empty-v"><div style="font-size:36px;opacity:.3;">🧠</div><p>No memories found.<br>Store your first memory above.</p></div>`;
     return;
   }
-  el.innerHTML = list.map(function(m) {
-    var ti = TYPES[m.type] || { icon: "?" };
-    return "<div class=\"mc\" data-id=\"" + m.id + "\">"
-      + (m.imgB64 ? "<img class=\"mc-img\" src=\"" + m.imgB64 + "\" loading=\"lazy\"/>" : "")
-      + "<div class=\"mc-body\"><span class=\"tbadge t-" + m.type + "\">" + ti.icon + " " + m.type + "</span>"
-      + "<div class=\"mname\">" + esc(m.name) + "</div>"
-      + "<div class=\"mprev\">" + esc(m.content || "") + "</div>"
-      + "<div class=\"mfoot\"><span class=\"mtime\">" + ago(m.ts) + "</span>"
-      + "<span class=\"mchain " + (m.demo ? "demo" : "onchain") + "\"><span class=\"chain-dot\"></span>" + (m.demo ? "demo" : "on-chain") + "</span>"
-      + "</div></div></div>";
+  el.innerHTML = list.map(m => {
+    const ti = TYPES[m.type] || { icon: "📦" };
+    return `<div class="mc" data-id="${m.id}">
+      ${m.imgB64 ? `<img class="mc-img" src="${m.imgB64}" loading="lazy"/>` : ""}
+      <div class="mc-body">
+        <span class="tbadge t-${m.type}">${ti.icon} ${m.type}</span>
+        <div class="mname">${esc(m.name)}</div>
+        <div class="mprev">${esc(m.content || "")}</div>
+        <div class="mfoot">
+          <span class="mtime">${ago(m.ts)}</span>
+          <span style="font-family:IBM Plex Mono,monospace;font-size:9px;color:${m.demo ? "#334155" : "#00FF88"};">${m.demo ? "demo" : "on-chain"}</span>
+        </div>
+      </div>
+    </div>`;
   }).join("");
-  document.querySelectorAll(".mc").forEach(function(card) {
-    card.addEventListener("click", function() { openMem(parseInt(this.getAttribute("data-id"))); });
+  document.querySelectorAll(".mc").forEach(card => {
+    card.addEventListener("click", () => openMem(parseInt(card.getAttribute("data-id"))));
   });
 }
 
 function openMem(id) {
-  var m = mems.find(function(x) { return x.id === id; });
+  const m = mems.find(x => x.id === id);
   if (!m) return;
-  var ti = TYPES[m.type] || { icon: "?" };
-  document.getElementById("mhdrContent").innerHTML = "<span class=\"tbadge t-" + m.type + "\">" + ti.icon + " " + m.type + "</span><div style=\"font-size:14px;font-weight:700;color:var(--white);margin-top:6px;\">" + esc(m.name) + "</div>";
-  var tweetText = encodeURIComponent("Stored AI " + m.type + " on-chain with @ShelbyProtocol\n\n\"" + m.name + "\"\n\n#ShelbyVault #AIMemory #Aptos");
-  var body = "";
-  if (m.imgB64) body += "<img class=\"modal-img\" src=\"" + m.imgB64 + "\"/>";
-  if (m.content) body += "<div class=\"mcontent\">" + esc(m.content) + "</div>";
-  body += "<div class=\"g2\" style=\"font-family:IBM Plex Mono,monospace;font-size:11px;margin-bottom:16px;gap:10px;\">"
-    + "<div><div style=\"color:var(--text2);margin-bottom:3px;\">Size</div><div style=\"color:var(--white);\">" + (m.size || "--") + "</div></div>"
-    + "<div><div style=\"color:var(--text2);margin-bottom:3px;\">Wallet</div><div style=\"color:var(--white);word-break:break-all;\">" + esc((m.agentId || "--").slice(0,20) + "...") + "</div></div>"
-    + "<div><div style=\"color:var(--text2);margin-bottom:3px;\">Stored</div><div style=\"color:var(--white);\">" + new Date(m.ts).toLocaleString() + "</div></div>"
-    + "<div><div style=\"color:var(--text2);margin-bottom:3px;\">Chain</div><div style=\"color:" + (m.demo ? "var(--text3)" : "var(--green)") + ";\">" + (m.demo ? "demo" : "on-chain") + "</div></div>"
-    + "</div>"
-    + (m.txHash ? "<div style=\"font-family:IBM Plex Mono,monospace;font-size:10px;padding:12px;background:var(--bg);border:1px solid var(--b1);border-radius:8px;color:var(--green);word-break:break-all;margin-bottom:14px;\">TX: " + m.txHash + "</div>" : "")
-    + "<div style=\"display:flex;gap:8px;flex-wrap:wrap;\">"
-    + (m.explorerUrl ? "<a class=\"rl primary\" href=\"" + m.explorerUrl + "\" target=\"_blank\">Shelby Explorer</a>" : "")
-    + (m.aptosUrl ? "<a class=\"rl\" href=\"" + m.aptosUrl + "\" target=\"_blank\">Aptos Explorer</a>" : "")
-    + "<a class=\"rl twitter\" href=\"https://twitter.com/intent/tweet?text=" + tweetText + "\" target=\"_blank\">♥ Share on X</a>"
-    + "<span class=\"rl\" style=\"color:var(--red);\" id=\"delBtn\">Delete</span></div>";
+  // FIX 1 (cont): Consistent double quotes — was getElementById("mhdrContent')
+  const ti = TYPES[m.type] || { icon: "📦" };
+  document.getElementById("mhdrContent").innerHTML = `<span class="tbadge t-${m.type}">${ti.icon} ${m.type}</span><div style="font-size:13px;font-weight:700;color:var(--white);margin-top:5px;">${esc(m.name)}</div>`;
+  let body = "";
+  if (m.imgB64) body += `<img class="modal-img" src="${m.imgB64}"/>`;
+  if (m.content) body += `<div class="mcontent">${esc(m.content)}</div>`;
+  body += `<div class="g2" style="font-family:IBM Plex Mono,monospace;font-size:11px;margin-bottom:14px;gap:10px;">
+    <div><div style="color:var(--text2);">Size</div><div style="color:var(--white);">${m.size || "--"}</div></div>
+    <div><div style="color:var(--text2);">Agent</div><div style="color:var(--white);">${esc(m.agentId || "--")}</div></div>
+    <div><div style="color:var(--text2);">Stored</div><div style="color:var(--white);">${new Date(m.ts).toLocaleString()}</div></div>
+    <div><div style="color:var(--text2);">Chain</div><div style="color:${m.demo ? "#334155" : "#00FF88"};">${m.demo ? "demo" : "on-chain"}</div></div>
+    </div>
+    ${m.txHash ? `<div style="font-family:IBM Plex Mono,monospace;font-size:10px;padding:10px;background:var(--bg);border:1px solid var(--b1);border-radius:6px;color:var(--green);word-break:break-all;margin-bottom:12px;">TX: ${m.txHash}</div>` : ""}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${m.explorerUrl ? `<a class="rl" href="${m.explorerUrl}" target="_blank">Shelby Explorer</a>` : ""}
+      ${m.aptosUrl ? `<a class="rl" href="${m.aptosUrl}" target="_blank">Aptos Explorer</a>` : ""}
+      <span class="rl" id="shareBtn">Share on X</span>
+      <span class="rl" style="color:var(--red);" id="delBtn">Delete</span>
+    </div>`;
   document.getElementById("mbdy").innerHTML = body;
   document.getElementById("moverlay").classList.add("open");
-  document.getElementById("delBtn").addEventListener("click", function() { delMem(id); });
+  document.getElementById("shareBtn").addEventListener("click", () => shareMem(id));
+  document.getElementById("delBtn").addEventListener("click", () => delMem(id));
 }
 
 function closeModal() { document.getElementById("moverlay").classList.remove("open"); }
 
 function delMem(id) {
   if (!confirm("Delete this memory?")) return;
-  mems = mems.filter(function(m) { return m.id !== id; });
-  try { localStorage.setItem("sv2", JSON.stringify(mems)); } catch(e) {}
+  mems = mems.filter(m => m.id !== id);
+  try { localStorage.setItem("sv2", JSON.stringify(mems)); } catch(e) { console.warn("LocalStorage save failed:", e); }
   closeModal(); renderVault(); updateCounts();
 }
 
-function renderStats() {
-  var types = Object.keys(TYPES);
-  var onchain = mems.filter(function(m) { return !m.demo; }).length;
-  var el = document.getElementById("statsGrid");
-  var html = "<div class=\"sc\"><div class=\"slbl\">Total Memories</div><div class=\"sval\" style=\"color:var(--green);\">" + mems.length + "</div><div class=\"ssub\">stored</div></div>"
-    + "<div class=\"sc\"><div class=\"slbl\">On-Chain</div><div class=\"sval\" style=\"color:var(--blue);\">" + onchain + "</div><div class=\"ssub\">confirmed</div></div>"
-    + "<div class=\"sc\"><div class=\"slbl\">Latest</div><div class=\"sval\" style=\"font-size:15px;\">" + (mems[0] ? ago(mems[0].ts) : "--") + "</div><div class=\"ssub\">most recent</div></div>"
-    + "<div class=\"sc\"><div class=\"slbl\">Wallet</div><div class=\"sval\" style=\"font-size:13px;color:" + (walletConnected ? "var(--green)" : "var(--text3)") + ";\">" + (walletConnected ? "Connected" : "Not connected") + "</div></div>";
-  types.forEach(function(t) {
-    var count = mems.filter(function(m) { return m.type === t; }).length;
-    html += "<div class=\"sc\"><div class=\"slbl\">" + TYPES[t].icon + " " + t + "</div><div class=\"sval\" style=\"font-size:22px;\">" + count + "</div></div>";
-  });
-  el.innerHTML = html;
+function shareMem(id) {
+  const m = mems.find(x => x.id === id);
+  if (!m) return;
+  window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(`Stored AI ${m.type} memory on-chain with @ShelbyProtocol\n\n"${m.name}"\n\n#ShelbyVault #AIMemory #Aptos`), "_blank");
 }
 
-async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
-  var CONTRACT = "0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5";
-  var APTOS_NODE = "https://api.testnet.aptoslabs.com/v1";
-  var txHash = null;
-  try {
-    // Get chain timestamp for expiration
-    var ledger = await fetch(APTOS_NODE).then(function(r) { return r.json(); });
-    var chainNow = BigInt(ledger.ledger_timestamp);
-    var ONE_DAY = 86400000000n;
-    var expiration = chainNow + (ONE_DAY * 7n); // 7 days
-
-    // Build register_blob payload
-    var payload = {
-      type: "entry_function_payload",
-      function: CONTRACT + "::blob_metadata::register_blob",
-      type_arguments: [],
-      arguments: [
-        fn,
-        expiration.toString(),
-        "0000000000000000000000000000000000000000000000000000000000000000",
-        "1",
-        b64.length.toString(),
-        "0",
-        0
-      ]
-    };
-
-    addLog("info", "Petra popup opening — please approve...");
-
-    // Sign transaction — legacy or AIP-62
-    var w = petraWallet || findPetra();
-    if (!w) throw new Error("Wallet not connected");
-    var sf = w.features["aptos:signAndSubmitTransaction"];
-    var sfn = resolveFn(sf, "signAndSubmitTransaction");
-    if (!sfn) throw new Error("signAndSubmitTransaction not available");
-    var txR = await sfn({ payload: payload });
-    txHash = txR.hash || (txR.output && txR.output.hash);
-    addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
-  } catch(e) {
-    var msg = e.message || "";
-    if (msg.toLowerCase().indexOf("reject") > -1 ||
-        msg.toLowerCase().indexOf("cancel") > -1 ||
-        msg.toLowerCase().indexOf("user") > -1) {
-      addLog("err", "Transaction rejected by user");
-      btn.disabled = false; btn.classList.remove("loading");
-      document.getElementById("btnText").textContent = TYPES[curType].label;
-      return;
-    }
-    addLog("warn", "TX failed: " + msg.slice(0,60) + " — storing blob only");
-  }
-
-  // Step 2: Upload blob to Shelby RPC via backend
-  addLog("info", "Step 2: Uploading to Shelby Protocol...");
-  document.getElementById("btnText").textContent = "Uploading blob...";
-
-  fetch("/api/upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageBase64: b64, filename: fn, memoryType: curType,
-      agentId: walletAddress, tags: tags, name: name,
-      walletAddress: walletAddress, txHash: txHash })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (!data.success) throw new Error(data.error || "Upload failed");
-    addLog("ok", txHash ? "Stored on YOUR wallet on-chain!" : "Stored in demo mode");
-    var entry = { id: Date.now(), name: name, filename: fn, type: curType, content: content,
-      agentId: walletAddress, tags: tags, imgB64: curType === "image" ? genB64 : null,
-      size: data.size, txHash: txHash || data.txHash,
-      explorerUrl: data.explorerUrl, aptosUrl: data.aptosUrl,
-      demo: !txHash, ts: Date.now() };
-    mems.unshift(entry);
-    try { localStorage.setItem("sv2", JSON.stringify(mems.slice(0,200))); } catch(e) {}
-    updateCounts(); showResult(data, entry);
-  })
-  .catch(function(e) { addLog("err", "Error: " + e.message); })
-  .finally(function() {
-    btn.disabled = false; btn.classList.remove("loading");
-    document.getElementById("btnText").textContent = TYPES[curType].label;
+function renderStats() {
+  const types = Object.keys(TYPES);
+  const onchain = mems.filter(m => !m.demo).length;
+  const el = document.getElementById("statsGrid");
+  let html = `
+    <div class="sc"><div class="slbl">Total Memories</div><div class="sval" style="color:var(--green);">${mems.length}</div><div class="ssub">stored</div></div>
+    <div class="sc"><div class="slbl">On-Chain</div><div class="sval" style="color:var(--blue);">${onchain}</div><div class="ssub">confirmed</div></div>
+    <div class="sc"><div class="slbl">Latest</div><div class="sval" style="font-size:15px;">${mems[0] ? ago(mems[0].ts) : "--"}</div><div class="ssub">most recent</div></div>
+    <div class="sc"><div class="slbl">Types Used</div><div class="sval">${types.filter(t => mems.some(m => m.type === t)).length}</div><div class="ssub">of 7</div></div>`;
+  types.forEach(t => {
+    const count = mems.filter(m => m.type === t).length;
+    html += `<div class="sc"><div class="slbl">${TYPES[t].icon} ${t}</div><div class="sval" style="font-size:22px;">${count}</div></div>`;
   });
+  el.innerHTML = html;
 }
 
 function updateCounts() {
@@ -1354,7 +863,7 @@ function updateCounts() {
 }
 
 function ago(ts) {
-  var d = Date.now() - ts;
+  const d = Date.now() - ts;
   if (d < 60000) return "just now";
   if (d < 3600000) return Math.floor(d/60000) + "m ago";
   if (d < 86400000) return Math.floor(d/3600000) + "h ago";
@@ -1363,82 +872,11 @@ function ago(ts) {
 
 function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function fmt(b) { if(!b) return "--"; if(b<1024) return b+" B"; if(b<1048576) return (b/1024).toFixed(1)+" KB"; return (b/1048576).toFixed(2)+" MB"; }
-function toB64(url) { return fetch(url).then(function(r){return r.blob();}).then(function(b){return new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result);};fr.onerror=rej;fr.readAsDataURL(b);});}); }
+function toB64(url) { return fetch(url).then(r=>r.blob()).then(b=>new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsDataURL(b); })); }
 
-// ── INIT ─────────────────────────────────────────────────────────────────────
-initMatrix();
 updateCounts();
 buildDynFields();
 
-// Petra v5 registers via the wallet-standard library's own event system.
-// We subscribe using getAptosWallets() which returns a { on, aptosWallets } object.
-// We also poll as a fallback since the extension may inject before/after our listener.
-var autoReconnectDone = false;
-
-function onPetraFound() {
-  var btn = document.getElementById("connectPetraBtn");
-  var msg = document.getElementById("noPetraMsg");
-  if (btn) { btn.disabled = false; btn.textContent = "💰 Connect Petra Wallet"; }
-  if (msg) msg.style.display = "none";
-  if (!autoReconnectDone) {
-    autoReconnectDone = true;
-    checkWalletOnLoad();
-  }
-}
-
-function startWalletDetection() {
-  // Re-dispatch app-ready now — wallet-standard protocol requires this
-  // to collect wallets that registered before our listener was set up
-  try {
-    window.dispatchEvent(new CustomEvent("wallet-standard:app-ready", {
-      bubbles: true,
-      detail: {
-        register: function(wallet) {
-          var already = _registeredWallets.some(function(w){ return w.name === wallet.name; });
-          if (!already) {
-            console.log("[SV] late app-ready collected:", wallet.name);
-            _registeredWallets.push(wallet);
-          }
-        }
-      }
-    }));
-  } catch(e) {}
-
-  if (findPetra()) { onPetraFound(); return; }
-
-  // Poll — Petra extension can inject up to 3s after page load
-  var polls = 0;
-  var poller = setInterval(function() {
-    polls++;
-    // Re-dispatch each poll to catch late-registering wallets
-    try {
-      window.dispatchEvent(new CustomEvent("wallet-standard:app-ready", {
-        bubbles: true,
-        detail: {
-          register: function(wallet) {
-            var already = _registeredWallets.some(function(w){ return w.name === wallet.name; });
-            if (!already) _registeredWallets.push(wallet);
-          }
-        }
-      }));
-    } catch(e) {}
-
-    if (findPetra()) {
-      clearInterval(poller);
-      onPetraFound();
-    } else if (polls >= 30) {
-      clearInterval(poller);
-    }
-  }, 500);
-}
-
-// Start detection after a short delay to let wallet-standard + extension inject
-setTimeout(startWalletDetection, 600);
-
-// Also handle the DOM-level event some Petra builds fire
-window.addEventListener("aptos:wallet-registered", function() {
-  if (findPetra()) onPetraFound();
-});
 </script>
 <script src="https://js.puter.com/v2/" defer></script>
 </body>
