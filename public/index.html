@@ -722,8 +722,7 @@ function resolveFn(feature, methodName) {
 function isUserRejection(e) {
   var m = ((e && e.message) ? e.message : String(e)).toLowerCase();
   return m.indexOf("reject") > -1 || m.indexOf("cancel") > -1 ||
-         m.indexOf("denied") > -1 || m.indexOf("user") > -1 ||
-         m.indexOf("declined") > -1;
+         m.indexOf("denied") > -1 || m.indexOf("declined") > -1;
 }
 
 function showConnectError(msg) {
@@ -784,9 +783,22 @@ async function connectWallet() {
     if (!connectFn) throw new Error("aptos:connect not callable");
     var output = await connectFn();
     console.log("[SV] connect output:", output);
-    var accounts = (output && output.accounts) ? output.accounts : [];
-    if (!accounts.length) throw new Error("No accounts returned");
-    walletAddress = accounts[0].address.toString();
+    // Petra returns either:
+    //   {accounts: [WalletAccount]} — AIP-62 spec
+    //   {args: WalletAccount, status: 'Approved'} — Petra's actual implementation
+    //   {address, publicKey} — very old builds
+    var account = null;
+    if (output && output.accounts && output.accounts.length) {
+      account = output.accounts[0];
+    } else if (output && output.args) {
+      account = output.args;
+    } else if (output && output.address) {
+      account = output;
+    }
+    if (!account) throw new Error("No account in connect response: " + JSON.stringify(output));
+    var rawAddr = account.address || account;
+    walletAddress = (rawAddr && typeof rawAddr.toString === "function") ? rawAddr.toString() : String(rawAddr);
+    if (!walletAddress || walletAddress === "[object Object]") throw new Error("Could not read address from: " + JSON.stringify(account));
     walletConnected = true;
     onWalletConnected();
   } catch(e) {
@@ -843,11 +855,22 @@ async function checkWalletOnLoad() {
     var connectFn = resolveFn(feat, "connect");
     if (!connectFn) return;
     var output = await connectFn({ silent: true });
-    var accounts = (output && output.accounts) ? output.accounts : [];
-    if (accounts.length) {
-      walletAddress = accounts[0].address.toString();
-      walletConnected = true;
-      onWalletConnected();
+    var account = null;
+    if (output && output.accounts && output.accounts.length) {
+      account = output.accounts[0];
+    } else if (output && output.args) {
+      account = output.args;
+    } else if (output && output.address) {
+      account = output;
+    }
+    if (account) {
+      var rawAddr = account.address || account;
+      var addr = (rawAddr && typeof rawAddr.toString === "function") ? rawAddr.toString() : String(rawAddr);
+      if (addr && addr !== "[object Object]") {
+        walletAddress = addr;
+        walletConnected = true;
+        onWalletConnected();
+      }
     }
   } catch(e) { /* not previously authorized — fine */ }
 }
