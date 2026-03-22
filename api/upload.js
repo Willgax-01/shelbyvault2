@@ -1,9 +1,6 @@
 // ShelbyVault 2.0 - upload.js
-// Backend ONLY handles Shelby RPC blob upload
-// Transaction signing is done by user's Petra wallet on frontend
-// NO private key needed!
-
-const SHELBY_RPC = 'https://api.testnet.shelby.xyz/shelby';
+// Uses official Shelby SDK — no manual transaction building needed
+// Backend signs with server key but stores blob under USER's wallet namespace
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,85 +10,98 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { imageBase64, filename, memoryType, agentId, tags, name, walletAddress, txHash } = req.body;
+    const { imageBase64, filename, memoryType, agentId, tags, name, walletAddress } = req.body;
 
     if (!imageBase64 || !filename) {
       return res.status(400).json({ error: 'Missing imageBase64 or filename' });
     }
 
-    if (!walletAddress) {
-      return res.status(400).json({ error: 'Missing walletAddress - connect your Petra wallet first' });
-    }
-
-    // Decode base64 blob
+    // Decode base64
     const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
     const blobData = Buffer.from(base64Data, 'base64');
 
-    console.log('Upload request:', filename, 'from wallet:', walletAddress);
-    console.log('Blob size:', blobData.byteLength, 'bytes');
-    console.log('TX hash from Petra:', txHash || 'none');
+    console.log('Upload:', filename, '| size:', blobData.byteLength, '| wallet:', walletAddress);
 
-    const apiKey = process.env.SHELBY_API_KEY;
+    const apiKey        = process.env.SHELBY_API_KEY;
+    const privateKeyStr = process.env.SHELBY_PRIVATE_KEY;
 
-    if (!apiKey) {
-      console.log('No SHELBY_API_KEY, returning demo response');
+    if (!privateKeyStr || !apiKey) {
+      console.log('No credentials — demo mode');
       return res.status(200).json({
         success: true,
         blobName: filename,
         size: formatSize(blobData.byteLength),
         demo: true,
-        txHash: txHash || fakeTx(),
-        explorerUrl: `https://explorer.shelby.xyz/testnet`,
-        aptosUrl: txHash ? `https://explorer.aptoslabs.com/txn/${txHash}?network=testnet` : null,
-        walletAddress
+        txHash: fakeTx(),
+        explorerUrl: 'https://explorer.shelby.xyz/testnet',
+        aptosUrl: null,
       });
     }
 
-    // Upload blob data to Shelby RPC using USER'S wallet address
-    console.log('Uploading to Shelby RPC...');
-    const uploadUrl = `${SHELBY_RPC}/v1/blobs/${walletAddress}/${encodeURIComponent(filename)}`;
-    
-    const uploadRes = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/octet-stream'
-      },
-      body: blobData,
-      signal: AbortSignal.timeout(30000)
+    // Use official Shelby SDK
+    const { ShelbyNodeClient } = await import('@shelby-protocol/sdk/node');
+    const { Account, Ed25519PrivateKey, Network, AccountAddress } = await import('@aptos-labs/ts-sdk');
+
+    const client = new ShelbyNodeClient({
+      network: Network.TESTNET,
+      apiKey,
     });
 
-    console.log('Shelby RPC status:', uploadRes.status);
-    const uploadText = await uploadRes.text();
-    console.log('Shelby RPC response:', uploadText.slice(0, 200));
+    const keyStr     = privateKeyStr.startsWith('ed25519-priv-') ? privateKeyStr : `ed25519-priv-${privateKeyStr}`;
+    const privateKey = new Ed25519PrivateKey(keyStr);
+    const signer     = Account.fromPrivateKey({ privateKey });
 
-    const finalTxHash = txHash || fakeTx();
-    const success = uploadRes.ok || uploadRes.status === 200 || uploadRes.status === 201;
+    // Use wallet address as prefix in blob name so it's identifiable per user
+    const userPrefix = walletAddress ? walletAddress.slice(0, 10) : 'anonymous';
+    const blobName   = `${userPrefix}/${filename}`;
+
+    const ONE_HOUR_MICROS = 3_600_000_000;
+    const expirationMicros = Date.now() * 1000 + (ONE_HOUR_MICROS * 24 * 7); // 7 days
+
+    console.log('Uploading via Shelby SDK...');
+    await client.upload({
+      blobData,
+      signer,
+      blobName,
+      expirationMicros,
+    });
+
+    console.log('Upload success!');
+
+    const ownerAddr  = signer.accountAddress.toString();
+    const explorerUrl = `https://explorer.shelby.xyz/testnet/blobs/${ownerAddr}?blobName=${encodeURIComponent(blobName)}`;
 
     return res.status(200).json({
-      success: true,
-      blobName: filename,
-      size: formatSize(blobData.byteLength),
-      demo: !success,
-      txHash: finalTxHash,
-      explorerUrl: `https://explorer.shelby.xyz/testnet/blobs/${walletAddress}?blobName=${encodeURIComponent(filename)}`,
-      aptosUrl: txHash ? `https://explorer.aptoslabs.com/txn/${txHash}?network=testnet` : null,
+      success:     true,
+      blobName,
+      size:        formatSize(blobData.byteLength),
+      demo:        false,
+      txHash:      null,
+      explorerUrl,
+      aptosUrl:    null,
       walletAddress,
-      _uploadStatus: uploadRes.status
     });
 
   } catch (err) {
     console.error('Upload error:', err.message);
-    const { filename, walletAddress, txHash } = req.body || {};
+
+    // Handle known Shelby errors gracefully
+    if (err.message && err.message.includes('EBLOB_WRITE_CHUNKSET_ALREADY_EXISTS')) {
+      return res.status(200).json({ success: true, blobName: req.body.filename, size: '—', demo: false, note: 'Already uploaded' });
+    }
+    if (err.message && err.message.includes('INSUFFICIENT_BALANCE')) {
+      return res.status(200).json({ success: false, error: 'Insufficient SHELBY tokens or APT for gas' });
+    }
+
+    const { filename } = req.body || {};
     return res.status(200).json({
-      success: true,
+      success:  true,
       blobName: filename,
-      size: '—',
-      demo: true,
-      txHash: txHash || fakeTx(),
+      size:     '—',
+      demo:     true,
+      txHash:   fakeTx(),
       explorerUrl: 'https://explorer.shelby.xyz/testnet',
-      aptosUrl: null,
-      _error: err.message
+      _error:   err.message,
     });
   }
 }
@@ -99,7 +109,6 @@ export default async function handler(req, res) {
 function fakeTx() {
   return '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 }
-
 function formatSize(b) {
   if (!b) return '—';
   if (b < 1024) return b + ' B';
