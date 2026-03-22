@@ -630,14 +630,12 @@ function initMatrix() {
 }
 
 // ── WALLET ────────────────────────────────────────────────────────────────────
-// Petra v5+ uses ONLY AIP-62 (no window.aptos injection).
-// The wallet-standard library must be loaded before getAptosWallets() works,
-// so all wallet detection is deferred until after scripts load.
+// Petra v5+ ONLY supports AIP-62. window.aptos/petra throw "deprecated" — do NOT use.
 var petraWallet = null;
 
 // Scan AIP-62 registry for Petra — safe to call anytime after wallet-standard loads
 function findPetra() {
-  // Try AIP-62 registry (Petra v5+)
+  // AIP-62 only — window.aptos/petra deprecated in Petra v5+
   try {
     if (typeof getAptosWallets === "function") {
       var reg = getAptosWallets();
@@ -649,19 +647,14 @@ function findPetra() {
       }
     }
   } catch(e) {}
-  // Also check window.__aptos_wallets_api (some Petra builds use this)
-  try {
-    if (window.__aptos_wallets_api) {
-      var ws = Array.from(window.__aptos_wallets_api.get());
-      for (var j = 0; j < ws.length; j++) {
-        if (ws[j].name && ws[j].name.toLowerCase().indexOf("petra") > -1) return ws[j];
-      }
-    }
-  } catch(e) {}
-  // Legacy fallback: window.aptos (Petra v4 and below)
-  if (typeof window.aptos !== "undefined" && window.aptos !== null) {
-    return { _legacy: true };
-  }
+  return null;
+}
+
+// Resolve AIP-62 feature to callable function
+function resolveFn(feature, methodName) {
+  if (!feature) return null;
+  if (feature[methodName] && typeof feature[methodName] === "function") return feature[methodName].bind(feature);
+  if (typeof feature === "function") return feature;
   return null;
 }
 
@@ -704,51 +697,24 @@ async function connectWallet() {
     return;
   }
 
-  // ── Legacy path: window.aptos (Petra v4 and below) ────────────────────────
-  if (wallet._legacy) {
-    try {
-      var resp = await window.aptos.connect();
-      var addr = resp && (resp.address || (resp.account && resp.account.address));
-      if (!addr) throw new Error("No address in response");
-      walletAddress = addr.toString();
-      walletConnected = true;
-      onWalletConnected();
-      return;
-    } catch(e) {
-      btn.disabled = false;
-      btn.textContent = "💰 Connect Petra Wallet";
-      if (!isUserRejection(e)) showConnectError("Connect failed: " + e.message);
-      return;
-    }
-  }
-
-  // ── AIP-62 path: Petra v5+ ────────────────────────────────────────────────
+  // AIP-62 only — Petra v5 deprecated window.aptos entirely
   try {
     petraWallet = wallet;
     var feat = wallet.features["aptos:connect"];
-    if (!feat) throw new Error("aptos:connect feature not found on wallet");
-
-    // Petra v5 exposes feat as { connect: async fn } or feat itself is the fn
-    var connectFn = (feat && typeof feat.connect === "function") ? feat.connect.bind(feat)
-                  : (typeof feat === "function")                  ? feat
-                  : null;
-    if (!connectFn) throw new Error("Cannot call aptos:connect");
-
+    if (!feat) throw new Error("aptos:connect missing from Petra");
+    var connectFn = resolveFn(feat, "connect");
+    if (!connectFn) throw new Error("aptos:connect not callable");
     var output = await connectFn();
-    // output is AptosConnectOutput: { accounts: WalletAccount[] }
     var accounts = (output && output.accounts) ? output.accounts : [];
-    if (!accounts.length) throw new Error("Wallet returned no accounts");
-
-    // WalletAccount.address is an AccountAddress object — call toString()
+    if (!accounts.length) throw new Error("No accounts returned");
     walletAddress = accounts[0].address.toString();
     walletConnected = true;
     onWalletConnected();
-
   } catch(e) {
     btn.disabled = false;
     btn.textContent = "💰 Connect Petra Wallet";
     if (!isUserRejection(e)) {
-      showConnectError("Connect failed: " + (e.message || "unknown").slice(0, 100));
+      showConnectError("Connect failed: " + (e.message || "unknown error").slice(0, 120));
     }
   }
 }
@@ -774,8 +740,6 @@ async function disconnectWallet() {
       var disconnectFn = (df && typeof df.disconnect === "function") ? df.disconnect.bind(df)
                        : (typeof df === "function") ? df : null;
       if (disconnectFn) await disconnectFn();
-    } else if (typeof window.aptos !== "undefined" && window.aptos) {
-      await window.aptos.disconnect();
     }
   } catch(e) {}
   walletAddress = null; walletConnected = false; petraWallet = null;
@@ -794,20 +758,9 @@ async function checkWalletOnLoad() {
   if (!wallet) return;
 
   try {
-    if (wallet._legacy) {
-      // Legacy: check if already authorized without prompting
-      if (await window.aptos.isConnected()) {
-        var acc = await window.aptos.account();
-        var addr = acc && (acc.address || (acc.account && acc.account.address));
-        if (addr) { walletAddress = addr.toString(); walletConnected = true; onWalletConnected(); }
-      }
-      return;
-    }
-    // AIP-62: try silent connect (won't prompt if not previously authorized)
     petraWallet = wallet;
     var feat = wallet.features["aptos:connect"];
-    var connectFn = (feat && typeof feat.connect === "function") ? feat.connect.bind(feat)
-                  : (typeof feat === "function") ? feat : null;
+    var connectFn = resolveFn(feat, "connect");
     if (!connectFn) return;
     var output = await connectFn({ silent: true });
     var accounts = (output && output.accounts) ? output.accounts : [];
@@ -816,7 +769,7 @@ async function checkWalletOnLoad() {
       walletConnected = true;
       onWalletConnected();
     }
-  } catch(e) { /* silent reconnect failed — that's fine, user will click */ }
+  } catch(e) { /* not previously authorized — fine */ }
 }
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
@@ -1240,19 +1193,13 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
     addLog("info", "Petra popup opening — please approve...");
 
     // Sign transaction — legacy or AIP-62
-    var w = findPetra();
+    var w = petraWallet || findPetra();
     if (!w) throw new Error("Wallet not connected");
-    if (w._legacy) {
-      var txR = await window.aptos.signAndSubmitTransaction(payload);
-      txHash = txR.hash || (txR.output && txR.output.hash);
-    } else {
-      var sf = w.features["aptos:signAndSubmitTransaction"];
-      var sfn = (sf && typeof sf.signAndSubmitTransaction === "function") ? sf.signAndSubmitTransaction.bind(sf)
-              : (typeof sf === "function") ? sf : null;
-      if (!sfn) throw new Error("signAndSubmitTransaction not available");
-      var txR2 = await sfn({ payload: payload });
-      txHash = txR2.hash || (txR2.output && txR2.output.hash);
-    }
+    var sf = w.features["aptos:signAndSubmitTransaction"];
+    var sfn = resolveFn(sf, "signAndSubmitTransaction");
+    if (!sfn) throw new Error("signAndSubmitTransaction not available");
+    var txR = await sfn({ payload: payload });
+    txHash = txR.hash || (txR.output && txR.output.hash);
     addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
   } catch(e) {
     var msg = e.message || "";
