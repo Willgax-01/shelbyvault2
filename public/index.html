@@ -640,13 +640,20 @@ function findPetra() {
     if (typeof getAptosWallets === "function") {
       var reg = getAptosWallets();
       var list = (reg && reg.aptosWallets) ? Array.from(reg.aptosWallets) : [];
+      // Log all registered wallets so we can see what Petra actually registers as
+      if (list.length) console.log("[ShelbyVault] AIP-62 wallets:", list.map(function(w){return w.name;}));
       for (var i = 0; i < list.length; i++) {
         if (list[i].name && list[i].name.toLowerCase().indexOf("petra") > -1) {
           return list[i];
         }
       }
+      // Fallback: return ANY registered Aptos wallet (covers renamed builds)
+      if (list.length > 0) {
+        console.log("[ShelbyVault] No 'petra' name match, using first wallet:", list[0].name);
+        return list[0];
+      }
     }
-  } catch(e) {}
+  } catch(e) { console.warn("[ShelbyVault] findPetra error:", e); }
   return null;
 }
 
@@ -1267,38 +1274,59 @@ initMatrix();
 updateCounts();
 buildDynFields();
 
-// Poll for Petra — wallet-standard lib loads async, extension also injects async
-var walletCheckCount = 0;
+// Petra v5 registers via the wallet-standard library's own event system.
+// We subscribe using getAptosWallets() which returns a { on, aptosWallets } object.
+// We also poll as a fallback since the extension may inject before/after our listener.
 var autoReconnectDone = false;
 
-function pollForWallet() {
-  walletCheckCount++;
-  var found = findPetra();
+function onPetraFound() {
   var btn = document.getElementById("connectPetraBtn");
   var msg = document.getElementById("noPetraMsg");
-
-  if (found) {
-    if (btn) { btn.disabled = false; btn.textContent = "💰 Connect Petra Wallet"; }
-    if (msg) msg.style.display = "none";
-    if (!autoReconnectDone) {
-      autoReconnectDone = true;
-      checkWalletOnLoad();
-    }
-  } else if (walletCheckCount < 24) {
-    // Poll for up to 12 seconds — wallet-standard + extension injection can be slow
-    setTimeout(pollForWallet, 500);
+  if (btn) { btn.disabled = false; btn.textContent = "💰 Connect Petra Wallet"; }
+  if (msg) msg.style.display = "none";
+  if (!autoReconnectDone) {
+    autoReconnectDone = true;
+    checkWalletOnLoad();
   }
-  // Never show "Install" or redirect — only connectWallet() does that on explicit click
 }
 
-// Delay first poll to give wallet-standard script time to execute
-setTimeout(pollForWallet, 800);
+function startWalletDetection() {
+  // Try right away — extension might already be registered
+  if (findPetra()) { onPetraFound(); return; }
 
-// Petra v5 fires this event when it registers itself
+  // Subscribe to wallet-standard's own registration event
+  // getAptosWallets() returns { aptosWallets: Set, on: (event, cb) => unsubscribe }
+  try {
+    if (typeof getAptosWallets === "function") {
+      var api = getAptosWallets();
+      if (api && typeof api.on === "function") {
+        api.on("register", function() {
+          if (findPetra()) onPetraFound();
+        });
+      }
+    }
+  } catch(e) {}
+
+  // Fallback poll — keep checking for up to 15 seconds
+  var polls = 0;
+  var poller = setInterval(function() {
+    polls++;
+    if (findPetra()) {
+      clearInterval(poller);
+      onPetraFound();
+    } else if (polls >= 30) {
+      clearInterval(poller);
+      // Still not found after 15s — user likely doesn't have it installed
+    }
+  }, 500);
+}
+
+// Start detection after a short delay to let wallet-standard + extension inject
+setTimeout(startWalletDetection, 600);
+
+// Also handle the DOM-level event some Petra builds fire
 window.addEventListener("aptos:wallet-registered", function() {
-  walletCheckCount = 0;
-  autoReconnectDone = false;
-  pollForWallet();
+  if (findPetra()) onPetraFound();
 });
 </script>
 <script src="https://js.puter.com/v2/" defer></script>
