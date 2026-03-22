@@ -1159,9 +1159,32 @@ function storeMemory() {
   else if (curType === "file") { b64 = fileB64; fn = fileName || safeName + "_" + Date.now(); }
   else { b64 = "data:text/plain;base64," + btoa(unescape(encodeURIComponent(content))); fn = safeName + "_" + Date.now() + ".txt"; }
   addLog("info", "Wallet: " + walletAddress.slice(0,10) + "...");
-  addLog("info", "Step 1: Registering blob on Aptos...");
-  document.getElementById("btnText").textContent = "Approve in Petra...";
-  signAndStore(b64, fn, name, content, tags, walletAddress, btn);
+  addLog("info", "Uploading to Shelby Protocol...");
+  document.getElementById("btnText").textContent = "Storing...";
+  fetch("/api/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageBase64: b64, filename: fn, memoryType: curType,
+      agentId: walletAddress, tags: tags, name: name, walletAddress: walletAddress })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.success) throw new Error(data.error || "Upload failed");
+    addLog("ok", data.demo ? "Stored in demo mode" : "Stored on Shelby Protocol!");
+    var entry = { id: Date.now(), name: name, filename: fn, type: curType, content: content,
+      agentId: walletAddress, tags: tags, imgB64: curType === "image" ? genB64 : null,
+      size: data.size, txHash: data.txHash,
+      explorerUrl: data.explorerUrl, aptosUrl: data.aptosUrl,
+      demo: data.demo, ts: Date.now() };
+    mems.unshift(entry);
+    try { localStorage.setItem("sv2", JSON.stringify(mems.slice(0,200))); } catch(e) {}
+    updateCounts(); showResult(data, entry);
+  })
+  .catch(function(e) { addLog("err", "Error: " + e.message); })
+  .finally(function() {
+    btn.disabled = false; btn.classList.remove("loading");
+    document.getElementById("btnText").textContent = TYPES[curType].label;
+  });
 }
 
 function addLog(type, msg) {
