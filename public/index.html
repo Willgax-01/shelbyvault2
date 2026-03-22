@@ -628,26 +628,51 @@ function initMatrix() {
   }, 60);
 }
 
-// WALLET
-function hasPetra() { return typeof window.petra !== "undefined"; }
+// WALLET - AIP-62 Standard
+var petraWallet = null;
+
+function getAptosWalletsList() {
+  try {
+    if (typeof getAptosWallets === "function") {
+      var result = getAptosWallets();
+      return (result && result.aptosWallets) ? Array.from(result.aptosWallets) : [];
+    }
+  } catch(e) {}
+  return [];
+}
+
+function findPetra() {
+  var wallets = getAptosWalletsList();
+  for (var i = 0; i < wallets.length; i++) {
+    if (wallets[i].name && wallets[i].name.toLowerCase().indexOf("petra") > -1) return wallets[i];
+  }
+  return null;
+}
 
 async function connectWallet() {
   var btn = document.getElementById("connectPetraBtn");
-  if (!hasPetra()) {
-    window.open("https://petra.app", "_blank");
+  petraWallet = findPetra();
+  if (!petraWallet) {
+    window.open("https://chromewebstore.google.com/detail/petra-aptos-wallet/ejjladinnckdgjemekebdpeokbikhfci", "_blank");
     return;
   }
   try {
     btn.disabled = true;
     btn.textContent = "Connecting...";
-    var response = await window.petra.connect();
-    walletAddress = response.address;
+    var feature = petraWallet.features["aptos:connect"];
+    if (!feature) throw new Error("Wallet missing connect feature");
+    var result = await feature.connect();
+    var accounts = result.accounts || [];
+    if (!accounts.length) throw new Error("No accounts returned");
+    walletAddress = accounts[0].address.toString();
     walletConnected = true;
     onWalletConnected();
   } catch(e) {
     btn.disabled = false;
     btn.textContent = "💰 Connect Petra Wallet";
-    if (e.code !== 4001) alert("Connection failed: " + e.message);
+    if (e.message && e.message.indexOf("reject") === -1 && e.message.indexOf("cancel") === -1) {
+      alert("Connection failed: " + e.message);
+    }
   }
 }
 
@@ -666,9 +691,12 @@ function onWalletConnected() {
 }
 
 async function disconnectWallet() {
-  try { if (hasPetra()) await window.petra.disconnect(); } catch(e) {}
-  walletAddress = null;
-  walletConnected = false;
+  try {
+    if (petraWallet && petraWallet.features["aptos:disconnect"]) {
+      await petraWallet.features["aptos:disconnect"].disconnect();
+    }
+  } catch(e) {}
+  walletAddress = null; walletConnected = false; petraWallet = null;
   var walletBtn = document.getElementById("walletBtn");
   walletBtn.textContent = "Connect Wallet";
   walletBtn.className = "wallet-btn disconnected";
@@ -678,27 +706,29 @@ async function disconnectWallet() {
   document.getElementById("connectOverlay").classList.remove("hidden");
 }
 
-// Check if already connected on load
 async function checkWalletOnLoad() {
-  if (!hasPetra()) return;
   try {
-    var isConnected = await window.petra.isConnected();
-    if (isConnected) {
-      var acc = await window.petra.account();
-      walletAddress = acc.address;
-      walletConnected = true;
-      onWalletConnected();
+    petraWallet = findPetra();
+    if (!petraWallet) return;
+    var feat = petraWallet.features["aptos:account"];
+    if (feat) {
+      var acc = await feat.account();
+      if (acc && acc.address) {
+        walletAddress = acc.address.toString();
+        walletConnected = true;
+        onWalletConnected();
+      }
     }
   } catch(e) {}
 }
 
-// Update Petra button text if not installed
 function updatePetraBtn() {
-  var btn = document.getElementById("connectPetraBtn");
-  if (!btn) return;
-  if (!hasPetra()) {
-    btn.textContent = "Install Petra Wallet";
-    document.getElementById("noPetraMsg").style.display = "block";
+  petraWallet = findPetra();
+  if (!petraWallet) {
+    var btn = document.getElementById("connectPetraBtn");
+    if (btn) btn.textContent = "Install Petra Wallet";
+    var msg = document.getElementById("noPetraMsg");
+    if (msg) msg.style.display = "block";
   }
 }
 
@@ -1137,6 +1167,7 @@ buildDynFields();
 setTimeout(checkWalletOnLoad, 500);
 setTimeout(updatePetraBtn, 100);
 </script>
+<script src="https://unpkg.com/@aptos-labs/wallet-standard@latest/dist/index.global.js"></script>
 <script src="https://js.puter.com/v2/" defer></script>
 </body>
 </html>
