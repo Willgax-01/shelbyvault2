@@ -1302,25 +1302,31 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
 
     // Try all signing methods in order
     var txR = null;
+    console.log("[SV] payload:", JSON.stringify(payload));
+    console.log("[SV] petraWallet:", petraWallet);
 
-    // Method 1: AIP-62 feature (registered wallet)
-    var aip62feat = petraWallet && petraWallet.features && petraWallet.features["aptos:signAndSubmitTransaction"];
-    if (aip62feat && aip62feat.signAndSubmitTransaction) {
-      addLog("info", "Using AIP-62 wallet signing...");
-      txR = await aip62feat.signAndSubmitTransaction({ payload: payload });
-    }
-    // Method 2: window.petra direct (legacy)
-    else if (typeof window.petra !== "undefined" && window.petra.signAndSubmitTransaction) {
-      addLog("info", "Using window.petra signing...");
+    // Always try window.petra / window.aptos first (most reliable for Petra)
+    if (typeof window.petra !== "undefined" && window.petra.signAndSubmitTransaction) {
+      addLog("info", "Signing with window.petra...");
       txR = await window.petra.signAndSubmitTransaction(payload);
     }
-    // Method 3: window.aptos direct (legacy)
     else if (typeof window.aptos !== "undefined" && window.aptos.signAndSubmitTransaction) {
-      addLog("info", "Using window.aptos signing...");
+      addLog("info", "Signing with window.aptos...");
       txR = await window.aptos.signAndSubmitTransaction(payload);
     }
+    // AIP-62 fallback
     else {
-      throw new Error("No signing method available");
+      var aip62feat = petraWallet && petraWallet.features && petraWallet.features["aptos:signAndSubmitTransaction"];
+      if (!aip62feat || !aip62feat.signAndSubmitTransaction) throw new Error("No signing method available");
+      addLog("info", "Signing with AIP-62...");
+      // AIP-62 uses camelCase format
+      var aip62payload = {
+        function: payload.function,
+        typeArguments: [],
+        functionArguments: payload.arguments
+      };
+      console.log("[SV] AIP-62 payload:", JSON.stringify(aip62payload));
+      txR = await aip62feat.signAndSubmitTransaction({ payload: aip62payload });
     }
     txHash = txR.hash || (txR.output && txR.output.hash);
     addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
