@@ -634,26 +634,70 @@ function initMatrix() {
 var petraWallet = null;
 
 // Scan AIP-62 registry for Petra — safe to call anytime after wallet-standard loads
+// ── WALLET DETECTION ─────────────────────────────────────────────────────────
+// Tries every known way Petra v5 registers itself.
+// Logs findings so you can debug from browser console (F12 → Console).
 function findPetra() {
-  // AIP-62 only — window.aptos/petra deprecated in Petra v5+
+  console.log("[ShelbyVault] findPetra() called");
+
+  // Method 1: AIP-62 via @aptos-labs/wallet-standard getAptosWallets()
   try {
     if (typeof getAptosWallets === "function") {
       var reg = getAptosWallets();
       var list = (reg && reg.aptosWallets) ? Array.from(reg.aptosWallets) : [];
-      // Log all registered wallets so we can see what Petra actually registers as
-      if (list.length) console.log("[ShelbyVault] AIP-62 wallets:", list.map(function(w){return w.name;}));
+      console.log("[ShelbyVault] getAptosWallets list:", list.map(function(w){return w.name;}));
       for (var i = 0; i < list.length; i++) {
         if (list[i].name && list[i].name.toLowerCase().indexOf("petra") > -1) {
+          console.log("[ShelbyVault] Found via getAptosWallets:", list[i].name);
           return list[i];
         }
       }
-      // Fallback: return ANY registered Aptos wallet (covers renamed builds)
       if (list.length > 0) {
-        console.log("[ShelbyVault] No 'petra' name match, using first wallet:", list[0].name);
+        console.log("[ShelbyVault] No petra name, using first:", list[0].name);
         return list[0];
       }
+    } else {
+      console.log("[ShelbyVault] getAptosWallets not a function, type:", typeof getAptosWallets);
     }
-  } catch(e) { console.warn("[ShelbyVault] findPetra error:", e); }
+  } catch(e) { console.warn("[ShelbyVault] getAptosWallets error:", e); }
+
+  // Method 2: window.aptosWallets (some builds expose wallets here)
+  try {
+    if (window.aptosWallets && window.aptosWallets.size > 0) {
+      var wlist = Array.from(window.aptosWallets);
+      console.log("[ShelbyVault] window.aptosWallets:", wlist.map(function(w){return w.name;}));
+      for (var j = 0; j < wlist.length; j++) {
+        if (wlist[j].name && wlist[j].name.toLowerCase().indexOf("petra") > -1) return wlist[j];
+      }
+      return wlist[0];
+    }
+  } catch(e) {}
+
+  // Method 3: window.navigator.wallets (WalletStandard spec)
+  try {
+    if (window.navigator && window.navigator.wallets) {
+      var nwlist = Array.from(window.navigator.wallets.get());
+      console.log("[ShelbyVault] navigator.wallets:", nwlist.map(function(w){return w.name;}));
+      for (var k = 0; k < nwlist.length; k++) {
+        if (nwlist[k].name && nwlist[k].name.toLowerCase().indexOf("petra") > -1) return nwlist[k];
+      }
+    }
+  } catch(e) {}
+
+  // Method 4: Check all window properties for anything that looks like a wallet
+  try {
+    var keys = ["petra", "Petra", "aptos", "AptosWallet"];
+    for (var ki = 0; ki < keys.length; ki++) {
+      if (window[keys[ki]] && typeof window[keys[ki]] === "object") {
+        console.log("[ShelbyVault] Found window." + keys[ki]);
+        var wobj = window[keys[ki]];
+        // Only use if it has AIP-62 features (not the deprecated API)
+        if (wobj.features && wobj.features["aptos:connect"]) return wobj;
+      }
+    }
+  } catch(e) {}
+
+  console.log("[ShelbyVault] No wallet found anywhere");
   return null;
 }
 
@@ -691,18 +735,59 @@ async function connectWallet() {
   var btn = document.getElementById("connectPetraBtn");
   if (btn.disabled) return;
   btn.disabled = true;
+  btn.textContent = "Detecting...";
+
+  // Full diagnostic — open F12 Console to see these
+  console.log("[SV] === Connect clicked ===");
+  console.log("[SV] getAptosWallets type:", typeof getAptosWallets);
+  try {
+    if (typeof getAptosWallets === "function") {
+      var _reg = getAptosWallets();
+      var _list = _reg && _reg.aptosWallets ? Array.from(_reg.aptosWallets) : [];
+      console.log("[SV] Registered wallets:", _list.map(function(w){return w.name + " features:" + Object.keys(w.features||{}).join(",");}));
+    }
+  } catch(_e) { console.warn("[SV] getAptosWallets threw:", _e); }
+  console.log("[SV] window.aptos:", typeof window.aptos, window.aptos ? Object.keys(window.aptos) : "");
+  console.log("[SV] window.petra:", typeof window.petra);
+  console.log("[SV] window.aptosWallets:", typeof window.aptosWallets);
+
   btn.textContent = "Connecting...";
-
   var wallet = findPetra();
+  console.log("[SV] findPetra():", wallet ? (wallet.name + " features:" + Object.keys(wallet.features||{}).join(",")) : "null");
 
-  // ── No wallet found at all ────────────────────────────────────────────────
   if (!wallet) {
     btn.disabled = false;
     btn.textContent = "💰 Connect Petra Wallet";
-    showConnectError("Petra not detected. Make sure the extension is enabled for this site, then refresh.");
     document.getElementById("noPetraMsg").style.display = "block";
+    showConnectError("Petra not found — open F12 Console, click again, and paste logs to developer.");
     return;
   }
+
+  // AIP-62 only — Petra v5 deprecated window.aptos entirely
+  try {
+    petraWallet = wallet;
+    var feat = wallet.features["aptos:connect"];
+    console.log("[SV] aptos:connect feature:", feat, "type:", typeof feat);
+    if (!feat) throw new Error("aptos:connect missing from Petra");
+    var connectFn = resolveFn(feat, "connect");
+    console.log("[SV] connectFn:", typeof connectFn);
+    if (!connectFn) throw new Error("aptos:connect not callable");
+    var output = await connectFn();
+    console.log("[SV] connect output:", output);
+    var accounts = (output && output.accounts) ? output.accounts : [];
+    if (!accounts.length) throw new Error("No accounts returned");
+    walletAddress = accounts[0].address.toString();
+    walletConnected = true;
+    onWalletConnected();
+  } catch(e) {
+    console.error("[SV] Connect error:", e);
+    btn.disabled = false;
+    btn.textContent = "💰 Connect Petra Wallet";
+    if (!isUserRejection(e)) {
+      showConnectError("Connect failed: " + (e.message || "unknown error").slice(0, 120));
+    }
+  }
+}
 
   // AIP-62 only — Petra v5 deprecated window.aptos entirely
   try {
