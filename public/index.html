@@ -642,10 +642,15 @@ function getAptosWalletsList() {
 }
 
 function findPetra() {
+  // Method 1: AIP-62 wallet standard
   var wallets = getAptosWalletsList();
   for (var i = 0; i < wallets.length; i++) {
     if (wallets[i].name && wallets[i].name.toLowerCase().indexOf("petra") > -1) return wallets[i];
   }
+  // Method 2: Legacy window.petra fallback
+  if (typeof window.petra !== "undefined") return { _legacy: true };
+  // Method 3: window.aptos legacy
+  if (typeof window.aptos !== "undefined" && window.aptos.isPetra) return { _legacy: true, _aptos: true };
   return null;
 }
 
@@ -659,12 +664,20 @@ async function connectWallet() {
   try {
     btn.disabled = true;
     btn.textContent = "Connecting...";
-    var feature = petraWallet.features["aptos:connect"];
-    if (!feature) throw new Error("Wallet missing connect feature");
-    var result = await feature.connect();
-    var accounts = result.accounts || [];
-    if (!accounts.length) throw new Error("No accounts returned");
-    walletAddress = accounts[0].address.toString();
+    // Handle legacy Petra
+    if (petraWallet._legacy) {
+      var w = petraWallet._aptos ? window.aptos : window.petra;
+      var res = await w.connect();
+      walletAddress = res.address || (res.accounts && res.accounts[0] && res.accounts[0].address);
+      if (!walletAddress) throw new Error("No address returned");
+    } else {
+      var feature = petraWallet.features["aptos:connect"];
+      if (!feature) throw new Error("Wallet missing connect feature");
+      var result = await feature.connect();
+      var accounts = result.accounts || [];
+      if (!accounts.length) throw new Error("No accounts returned");
+      walletAddress = accounts[0].address.toString();
+    }
     walletConnected = true;
     onWalletConnected();
   } catch(e) {
@@ -1164,8 +1177,17 @@ function toB64(url) { return fetch(url).then(function(r){return r.blob();}).then
 initMatrix();
 updateCounts();
 buildDynFields();
-setTimeout(checkWalletOnLoad, 500);
-setTimeout(updatePetraBtn, 100);
+// Wait for wallet extensions to inject (they need ~1s after page load)
+setTimeout(function() {
+  updatePetraBtn();
+  checkWalletOnLoad();
+}, 1000);
+// Also listen for wallets registering dynamically
+if (typeof window !== "undefined") {
+  window.addEventListener("aptos:wallet-registered", function() {
+    updatePetraBtn();
+  });
+}
 </script>
 <script src="https://unpkg.com/@aptos-labs/wallet-standard@latest/dist/index.global.js"></script>
 <script src="https://js.puter.com/v2/" defer></script>
