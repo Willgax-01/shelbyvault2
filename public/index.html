@@ -1159,32 +1159,9 @@ function storeMemory() {
   else if (curType === "file") { b64 = fileB64; fn = fileName || safeName + "_" + Date.now(); }
   else { b64 = "data:text/plain;base64," + btoa(unescape(encodeURIComponent(content))); fn = safeName + "_" + Date.now() + ".txt"; }
   addLog("info", "Wallet: " + walletAddress.slice(0,10) + "...");
-  addLog("info", "Uploading to Shelby Protocol...");
-  document.getElementById("btnText").textContent = "Storing...";
-  fetch("/api/upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageBase64: b64, filename: fn, memoryType: curType,
-      agentId: walletAddress, tags: tags, name: name, walletAddress: walletAddress })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (!data.success) throw new Error(data.error || "Upload failed");
-    addLog("ok", data.demo ? "Stored in demo mode" : "Stored on Shelby Protocol!");
-    var entry = { id: Date.now(), name: name, filename: fn, type: curType, content: content,
-      agentId: walletAddress, tags: tags, imgB64: curType === "image" ? genB64 : null,
-      size: data.size, txHash: data.txHash,
-      explorerUrl: data.explorerUrl, aptosUrl: data.aptosUrl,
-      demo: data.demo, ts: Date.now() };
-    mems.unshift(entry);
-    try { localStorage.setItem("sv2", JSON.stringify(mems.slice(0,200))); } catch(e) {}
-    updateCounts(); showResult(data, entry);
-  })
-  .catch(function(e) { addLog("err", "Error: " + e.message); })
-  .finally(function() {
-    btn.disabled = false; btn.classList.remove("loading");
-    document.getElementById("btnText").textContent = TYPES[curType].label;
-  });
+  addLog("info", "Step 1: Registering blob on Aptos...");
+  document.getElementById("btnText").textContent = "Approve in Petra...";
+  signAndStore(b64, fn, name, content, tags, walletAddress, btn);
 }
 
 function addLog(type, msg) {
@@ -1297,15 +1274,10 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
     // Get chain timestamp for expiration
     var ledger = await fetch(APTOS_NODE).then(function(r) { return r.json(); });
     var chainNow = BigInt(ledger.ledger_timestamp);
-    var ONE_DAY = BigInt("86400000000");
-    var expiration = chainNow + (ONE_DAY * BigInt(7)); // 7 days
-
-    // Calculate actual blob byte size from base64
-    var base64Data = b64.replace(/^data:[^;]+;base64,/, "");
-    var blobByteSize = Math.floor(base64Data.length * 3 / 4);
+    var ONE_DAY = 86400000000n;
+    var expiration = chainNow + (ONE_DAY * 7n); // 7 days
 
     // Build register_blob payload
-    // Args: blob_name, expiration_micros, commitment(32 zero bytes), chunkset_count, blob_size, payment_tier_id, encoding_u8
     var payload = {
       type: "entry_function_payload",
       function: CONTRACT + "::blob_metadata::register_blob",
@@ -1313,9 +1285,9 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
       arguments: [
         fn,
         expiration.toString(),
-        Array(32).fill(0),
+        "0000000000000000000000000000000000000000000000000000000000000000",
         "1",
-        blobByteSize.toString(),
+        b64.length.toString(),
         "0",
         0
       ]
@@ -1323,34 +1295,13 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
 
     addLog("info", "Petra popup opening — please approve...");
 
-    // Try all signing methods in order
-    var txR = null;
-    console.log("[SV] payload:", JSON.stringify(payload));
-    console.log("[SV] petraWallet:", petraWallet);
-
-    // Always try window.petra / window.aptos first (most reliable for Petra)
-    if (typeof window.petra !== "undefined" && window.petra.signAndSubmitTransaction) {
-      addLog("info", "Signing with window.petra...");
-      txR = await window.petra.signAndSubmitTransaction(payload);
-    }
-    else if (typeof window.aptos !== "undefined" && window.aptos.signAndSubmitTransaction) {
-      addLog("info", "Signing with window.aptos...");
-      txR = await window.aptos.signAndSubmitTransaction(payload);
-    }
-    // AIP-62 fallback
-    else {
-      var aip62feat = petraWallet && petraWallet.features && petraWallet.features["aptos:signAndSubmitTransaction"];
-      if (!aip62feat || !aip62feat.signAndSubmitTransaction) throw new Error("No signing method available");
-      addLog("info", "Signing with AIP-62...");
-      // AIP-62 uses camelCase format
-      var aip62payload = {
-        function: payload.function,
-        typeArguments: [],
-        functionArguments: payload.arguments
-      };
-      console.log("[SV] AIP-62 payload:", JSON.stringify(aip62payload));
-      txR = await aip62feat.signAndSubmitTransaction({ payload: aip62payload });
-    }
+    // Sign transaction — legacy or AIP-62
+    var w = petraWallet || findPetra();
+    if (!w) throw new Error("Wallet not connected");
+    var sf = w.features["aptos:signAndSubmitTransaction"];
+    var sfn = resolveFn(sf, "signAndSubmitTransaction");
+    if (!sfn) throw new Error("signAndSubmitTransaction not available");
+    var txR = await sfn({ payload: payload });
     txHash = txR.hash || (txR.output && txR.output.hash);
     addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
   } catch(e) {
@@ -1436,22 +1387,6 @@ function onPetraFound() {
 }
 
 function startWalletDetection() {
-  // FIRST: directly check window for Petra before anything else
-  var directKeys = ["petra", "Petra", "aptos", "AptosWallet", "PetraWallet", "martian", "pontem"];
-  for (var _k = 0; _k < directKeys.length; _k++) {
-    try {
-      var _obj = window[directKeys[_k]];
-      if (_obj && typeof _obj.connect === "function") {
-        if (_registeredWallets.indexOf(_obj) === -1) {
-          _obj.name = _obj.name || directKeys[_k];
-          _registeredWallets.push(_obj);
-          console.log("[SV] Direct window scan found:", directKeys[_k]);
-        }
-      }
-    } catch(e) {}
-  }
-  if (findPetra()) { onPetraFound(); return; }
-
   // Re-dispatch app-ready now — wallet-standard protocol requires this
   // to collect wallets that registered before our listener was set up
   try {
@@ -1498,19 +1433,12 @@ function startWalletDetection() {
 }
 
 // Start detection after a short delay to let wallet-standard + extension inject
-setTimeout(startWalletDetection, 1500);
+setTimeout(startWalletDetection, 600);
 
 // Also handle the DOM-level event some Petra builds fire
 window.addEventListener("aptos:wallet-registered", function() {
   if (findPetra()) onPetraFound();
 });
-// Aggressive polling fallback — check every second for 10s
-var _pollCount = 0;
-var _pollTimer = setInterval(function() {
-  _pollCount++;
-  if (findPetra()) { onPetraFound(); clearInterval(_pollTimer); return; }
-  if (_pollCount >= 10) clearInterval(_pollTimer);
-}, 1000);
 </script>
 <script src="https://js.puter.com/v2/" defer></script>
 </body>
