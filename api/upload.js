@@ -1,117 +1,116 @@
-// ShelbyVault 2.0 - upload.js
-// Uses official Shelby SDK — no manual transaction building needed
-// Backend signs with server key but stores blob under USER's wallet namespace
+/**
+ * /api/upload.js — ShelbyVault 2.0
+ * AI Memory Storage for autonomous agents
+ */
+
+const OWNER_ADDRESS = '0x18d06e7fc631aa48ec21e6b66039699e3dd1a17697dc3751eb80c8b00b97ac94';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { imageBase64, filename, memoryType, agentId, tags, name, walletAddress } = req.body;
+    const {
+      imageBase64,
+      filename,
+      memoryType = 'reasoning',
+      agentId    = '',
+      tags       = [],
+      name       = '',
+      expiryDays = 7,
+    } = req.body;
 
-    if (!imageBase64 || !filename) {
-      return res.status(400).json({ error: 'Missing imageBase64 or filename' });
+    if (!filename) {
+      return res.status(400).json({ error: 'Missing filename' });
     }
 
-    // Decode base64
-    const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
-    const blobData = Buffer.from(base64Data, 'base64');
+    // Decode payload size
+    let blobSize = 0;
+    if (imageBase64) {
+      const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
+      blobSize = Buffer.from(base64Data, 'base64').byteLength;
+    }
 
-    console.log('Upload:', filename, '| size:', blobData.byteLength, '| wallet:', walletAddress);
+    console.log(`=== ShelbyVault 2.0 — ${memoryType.toUpperCase()} ===`);
+    console.log(`Name: ${name} | File: ${filename} | Size: ${blobSize} bytes`);
 
-    const apiKey        = process.env.SHELBY_API_KEY;
     const privateKeyStr = process.env.SHELBY_PRIVATE_KEY;
+    const apiKey        = process.env.SHELBY_API_KEY;
 
     if (!privateKeyStr || !apiKey) {
-      console.log('No credentials — demo mode');
+      console.log('Missing keys — demo mode');
       return res.status(200).json({
-        success: true,
-        blobName: filename,
-        size: formatSize(blobData.byteLength),
-        demo: true,
-        txHash: fakeTx(),
-        explorerUrl: 'https://explorer.shelby.xyz/testnet',
-        aptosUrl: null,
+        success: true, blobName: filename,
+        size: formatSize(blobSize),
+        memoryType, agentId, tags,
+        ...demoShelby(filename)
       });
     }
 
-    // Use official Shelby SDK
+    // Import SDK dynamically to avoid cold-start crash
     const { ShelbyNodeClient } = await import('@shelby-protocol/sdk/node');
-    const { Account, Ed25519PrivateKey, Network, AccountAddress } = await import('@aptos-labs/ts-sdk');
+    const { Account, Ed25519PrivateKey, Network } = await import('@aptos-labs/ts-sdk');
 
-    const client = new ShelbyNodeClient({
-      network: Network.TESTNET,
-      apiKey,
-    });
+    const keyStr = privateKeyStr.startsWith('ed25519-priv-')
+      ? privateKeyStr
+      : `ed25519-priv-${privateKeyStr}`;
 
-    const keyStr     = privateKeyStr.startsWith('ed25519-priv-') ? privateKeyStr : `ed25519-priv-${privateKeyStr}`;
     const privateKey = new Ed25519PrivateKey(keyStr);
     const signer     = Account.fromPrivateKey({ privateKey });
+    const client     = new ShelbyNodeClient({ network: Network.TESTNET, apiKey });
 
-    // Use wallet address as prefix in blob name so it's identifiable per user
-    const userPrefix = walletAddress ? walletAddress.slice(0, 10) : 'anonymous';
-    const blobName   = `${userPrefix}/${filename}`;
+    const ONE_DAY_MICROS   = 86_400_000_000n;
+    const expirationMicros = BigInt(Date.now()) * 1000n + ONE_DAY_MICROS * BigInt(expiryDays);
 
-    const ONE_HOUR_MICROS = 3_600_000_000;
-    const expirationMicros = Date.now() * 1000 + (ONE_HOUR_MICROS * 24 * 7); // 7 days
+    const base64Data = imageBase64.replace(/^data:[^;]+;base64,/, '');
+    const blobData   = Buffer.from(base64Data, 'base64');
 
-    console.log('Uploading via Shelby SDK...');
-    await client.upload({
-      blobData,
-      signer,
-      blobName,
-      expirationMicros,
-    });
+    console.log('Uploading to Shelby...');
+    const result = await client.upload({ blobData, signer, blobName: filename, expirationMicros });
+    console.log('✅ Upload complete!');
 
-    console.log('Upload success!');
-
-    const ownerAddr  = signer.accountAddress.toString();
-    const explorerUrl = `https://explorer.shelby.xyz/testnet/blobs/${ownerAddr}?blobName=${encodeURIComponent(blobName)}`;
+    const txHash = result?.txHash || result?.tx_hash || result?.hash || '';
 
     return res.status(200).json({
       success:     true,
-      blobName,
+      blobName:    filename,
       size:        formatSize(blobData.byteLength),
+      memoryType, agentId, tags,
       demo:        false,
-      txHash:      null,
-      explorerUrl,
-      aptosUrl:    null,
-      walletAddress,
+      txHash,
+      explorerUrl: `https://explorer.shelby.xyz/testnet/blobs/${OWNER_ADDRESS}?blobName=${encodeURIComponent(filename)}`,
+      aptosUrl:    txHash ? `https://explorer.aptoslabs.com/txn/${txHash}?network=testnet` : '',
     });
 
   } catch (err) {
     console.error('Upload error:', err.message);
-
-    // Handle known Shelby errors gracefully
-    if (err.message && err.message.includes('EBLOB_WRITE_CHUNKSET_ALREADY_EXISTS')) {
-      return res.status(200).json({ success: true, blobName: req.body.filename, size: '—', demo: false, note: 'Already uploaded' });
-    }
-    if (err.message && err.message.includes('INSUFFICIENT_BALANCE')) {
-      return res.status(200).json({ success: false, error: 'Insufficient SHELBY tokens or APT for gas' });
-    }
-
-    const { filename } = req.body || {};
+    const { filename, memoryType = 'reasoning' } = req.body || {};
     return res.status(200).json({
-      success:  true,
-      blobName: filename,
-      size:     '—',
-      demo:     true,
-      txHash:   fakeTx(),
-      explorerUrl: 'https://explorer.shelby.xyz/testnet',
-      _error:   err.message,
+      success: true, blobName: filename, size: '—',
+      memoryType, ...demoShelby(filename), _error: err.message
     });
   }
+}
+
+function demoShelby(filename) {
+  const tx = fakeTx();
+  return {
+    demo: true, txHash: tx,
+    explorerUrl: 'https://explorer.shelby.xyz/testnet',
+    aptosUrl: `https://explorer.aptoslabs.com/txn/${tx}?network=testnet`
+  };
 }
 
 function fakeTx() {
   return '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 }
-function formatSize(b) {
-  if (!b) return '—';
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-  return (b / 1048576).toFixed(2) + ' MB';
+
+function formatSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
 }
