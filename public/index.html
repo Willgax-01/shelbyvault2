@@ -1300,13 +1300,28 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
 
     addLog("info", "Petra popup opening — please approve...");
 
-    // Sign transaction — legacy or AIP-62
-    var w = petraWallet || findPetra();
-    if (!w) throw new Error("Wallet not connected");
-    var sf = w.features["aptos:signAndSubmitTransaction"];
-    var sfn = resolveFn(sf, "signAndSubmitTransaction");
-    if (!sfn) throw new Error("signAndSubmitTransaction not available");
-    var txR = await sfn({ payload: payload });
+    // Try all signing methods in order
+    var txR = null;
+
+    // Method 1: AIP-62 feature (registered wallet)
+    var aip62feat = petraWallet && petraWallet.features && petraWallet.features["aptos:signAndSubmitTransaction"];
+    if (aip62feat && aip62feat.signAndSubmitTransaction) {
+      addLog("info", "Using AIP-62 wallet signing...");
+      txR = await aip62feat.signAndSubmitTransaction({ payload: payload });
+    }
+    // Method 2: window.petra direct (legacy)
+    else if (typeof window.petra !== "undefined" && window.petra.signAndSubmitTransaction) {
+      addLog("info", "Using window.petra signing...");
+      txR = await window.petra.signAndSubmitTransaction(payload);
+    }
+    // Method 3: window.aptos direct (legacy)
+    else if (typeof window.aptos !== "undefined" && window.aptos.signAndSubmitTransaction) {
+      addLog("info", "Using window.aptos signing...");
+      txR = await window.aptos.signAndSubmitTransaction(payload);
+    }
+    else {
+      throw new Error("No signing method available");
+    }
     txHash = txR.hash || (txR.output && txR.output.hash);
     addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
   } catch(e) {
