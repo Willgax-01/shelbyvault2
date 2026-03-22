@@ -836,7 +836,7 @@ function showResult(data, entry) {
 
 function renderVault() {
   var search = (document.getElementById("vaultSearch").value || "").toLowerCase();
-  var list = mems;
+  var list = mems.slice();
   if (vf !== "all") list = list.filter(function(m) { return m.type === vf; });
   if (search) list = list.filter(function(m) { return (m.name + m.content + m.agentId).toLowerCase().indexOf(search) > -1; });
   var el = document.getElementById("memories");
