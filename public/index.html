@@ -629,7 +629,7 @@ function initMatrix() {
 }
 
 // WALLET
-function hasPetra() { return typeof window.aptos !== "undefined"; }
+function hasPetra() { return typeof window.petra !== "undefined"; }
 
 async function connectWallet() {
   var btn = document.getElementById("connectPetraBtn");
@@ -640,13 +640,13 @@ async function connectWallet() {
   try {
     btn.disabled = true;
     btn.textContent = "Connecting...";
-    var response = await window.aptos.connect();
+    var response = await window.petra.connect();
     walletAddress = response.address;
     walletConnected = true;
     onWalletConnected();
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = "Connect Petra Wallet";
+    btn.textContent = "💰 Connect Petra Wallet";
     if (e.code !== 4001) alert("Connection failed: " + e.message);
   }
 }
@@ -666,7 +666,7 @@ function onWalletConnected() {
 }
 
 async function disconnectWallet() {
-  try { if (hasPetra()) await window.aptos.disconnect(); } catch(e) {}
+  try { if (hasPetra()) await window.petra.disconnect(); } catch(e) {}
   walletAddress = null;
   walletConnected = false;
   var walletBtn = document.getElementById("walletBtn");
@@ -682,9 +682,9 @@ async function disconnectWallet() {
 async function checkWalletOnLoad() {
   if (!hasPetra()) return;
   try {
-    var isConnected = await window.aptos.isConnected();
+    var isConnected = await window.petra.isConnected();
     if (isConnected) {
-      var acc = await window.aptos.account();
+      var acc = await window.petra.account();
       walletAddress = acc.address;
       walletConnected = true;
       onWalletConnected();
