@@ -676,11 +676,10 @@ async function connectWallet() {
   btn.disabled = true;
   btn.textContent = "Connecting...";
 
-  // ── Path 1: Legacy window.aptos (most Petra Chrome installs use this) ──────
-  if (hasPetraLegacy()) {
+  // ── Path 1: Legacy window.aptos (Petra Chrome extension standard injection) ─
+  if (typeof window.aptos !== "undefined" && window.aptos !== null) {
     try {
       var resp = await window.aptos.connect();
-      // Petra returns { address, publicKey } or { account: { address } }
       var addr = (resp && resp.address)
         ? resp.address
         : (resp && resp.account && resp.account.address)
@@ -692,30 +691,27 @@ async function connectWallet() {
       onWalletConnected();
       return;
     } catch(e) {
-      var msg = (e && e.message) ? e.message : String(e);
-      var lower = msg.toLowerCase();
-      // User rejected — silently reset button, no error banner
-      if (lower.indexOf("reject") > -1 || lower.indexOf("cancel") > -1 ||
-          lower.indexOf("user") > -1 || lower.indexOf("denied") > -1) {
+      var m = (e && e.message) ? e.message.toLowerCase() : "";
+      if (m.indexOf("reject") > -1 || m.indexOf("cancel") > -1 ||
+          m.indexOf("denied") > -1 || m.indexOf("user") > -1) {
         btn.disabled = false;
         btn.textContent = "💰 Connect Petra Wallet";
         return;
       }
-      // Real error — show it and fall through to AIP-62
-      console.warn("Legacy connect failed:", msg);
+      // Real error — fall through to AIP-62
+      console.warn("window.aptos.connect failed:", e.message);
     }
   }
 
-  // ── Path 2: AIP-62 standard ───────────────────────────────────────────────
-  petraWallet = findPetraAIP62();
-  if (petraWallet) {
-    try {
+  // ── Path 2: AIP-62 standard ────────────────────────────────────────────────
+  try {
+    petraWallet = findPetraAIP62();
+    if (petraWallet) {
       var connectFeature = petraWallet.features["aptos:connect"];
-      if (!connectFeature) throw new Error("aptos:connect feature missing");
-      // The feature object is { connect: fn } or directly callable
       var connectFn = typeof connectFeature === "function"
         ? connectFeature
-        : (connectFeature.connect || connectFeature);
+        : (connectFeature && (connectFeature.connect || connectFeature));
+      if (!connectFn) throw new Error("aptos:connect not callable");
       var result = await connectFn({ silent: false });
       var accounts = (result && result.accounts) ? result.accounts : [];
       if (!accounts.length) throw new Error("No accounts returned");
@@ -723,26 +719,26 @@ async function connectWallet() {
       walletConnected = true;
       onWalletConnected();
       return;
-    } catch(e) {
-      var msg2 = (e && e.message) ? e.message : String(e);
-      var lower2 = msg2.toLowerCase();
-      if (lower2.indexOf("reject") > -1 || lower2.indexOf("cancel") > -1 ||
-          lower2.indexOf("user") > -1 || lower2.indexOf("denied") > -1) {
-        btn.disabled = false;
-        btn.textContent = "💰 Connect Petra Wallet";
-        return;
-      }
-      showConnectError("Connection failed: " + msg2.slice(0, 80));
+    }
+  } catch(e) {
+    var m2 = (e && e.message) ? e.message.toLowerCase() : "";
+    if (m2.indexOf("reject") > -1 || m2.indexOf("cancel") > -1 ||
+        m2.indexOf("denied") > -1 || m2.indexOf("user") > -1) {
+      btn.disabled = false;
+      btn.textContent = "💰 Connect Petra Wallet";
       return;
     }
+    showConnectError("Connection failed: " + (e.message || "unknown error").slice(0, 80));
+    return;
   }
 
-  // ── Neither found ─────────────────────────────────────────────────────────
+  // ── Nothing found after click — show install hint, DO NOT auto-redirect ────
   btn.disabled = false;
-  btn.textContent = "Install Petra Wallet";
+  btn.textContent = "💰 Connect Petra Wallet";
   var noPetra = document.getElementById("noPetraMsg");
   if (noPetra) noPetra.style.display = "block";
-  window.open("https://chromewebstore.google.com/detail/petra-aptos-wallet/ejjladinnckdgjemekebdpeokbikhfci", "_blank");
+  // Show a message explaining what to do — don't redirect without consent
+  showConnectError("Petra wallet not detected. Please install Petra extension, then refresh this page.");
 }
 
 function onWalletConnected() {
@@ -1315,33 +1311,49 @@ initMatrix();
 updateCounts();
 buildDynFields();
 
-// Poll for wallet — extensions can take 1-3s to inject into the page
+// Poll for wallet — Petra extension injects window.aptos async, keep checking
+// Never show "Install" or redirect to store just because extension is slow
 var walletCheckCount = 0;
+var autoReconnectDone = false;
+
+function petraDetected() {
+  // window.aptos is the main injection point for Petra Chrome extension
+  if (typeof window.aptos !== "undefined" && window.aptos !== null) return true;
+  // AIP-62 fallback
+  try {
+    if (typeof getAptosWallets === "function") {
+      var r = getAptosWallets();
+      var ws = (r && r.aptosWallets) ? Array.from(r.aptosWallets) : [];
+      return ws.some(function(w) { return w.name && w.name.toLowerCase().indexOf("petra") > -1; });
+    }
+  } catch(e) {}
+  return false;
+}
+
 function pollForWallet() {
   walletCheckCount++;
-  var foundAIP62 = findPetraAIP62();
-  var foundLegacy = hasPetraLegacy();
   var btn = document.getElementById("connectPetraBtn");
   var msg = document.getElementById("noPetraMsg");
 
-  if (foundAIP62 || foundLegacy) {
-    if (btn) btn.textContent = "💰 Connect Petra Wallet";
+  if (petraDetected()) {
+    if (btn) { btn.disabled = false; btn.textContent = "💰 Connect Petra Wallet"; }
     if (msg) msg.style.display = "none";
-    checkWalletOnLoad(); // Attempt silent reconnect if previously authorized
-  } else if (walletCheckCount < 12) {
+    // Auto-reconnect once only (silent — no popup)
+    if (!autoReconnectDone) {
+      autoReconnectDone = true;
+      checkWalletOnLoad();
+    }
+  } else if (walletCheckCount < 20) {
+    // Keep polling up to 10 seconds — extensions can be slow on first load
     setTimeout(pollForWallet, 500);
-  } else {
-    // Extension not found after ~6 seconds
-    if (btn) btn.textContent = "Install Petra Wallet";
-    if (msg) msg.style.display = "block";
   }
+  // NOTE: We intentionally never redirect to the web store or show "Install"
+  // from polling. Those only show if the USER clicks the button and nothing is found.
 }
 
-// Start polling early (300ms gives extension time to inject)
 setTimeout(pollForWallet, 300);
-
-// Also catch wallets that register after the page loads
 window.addEventListener("aptos:wallet-registered", function() {
+  walletCheckCount = 0; // reset so it re-evaluates
   pollForWallet();
 });
 </script>
