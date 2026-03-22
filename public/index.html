@@ -1274,10 +1274,15 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
     // Get chain timestamp for expiration
     var ledger = await fetch(APTOS_NODE).then(function(r) { return r.json(); });
     var chainNow = BigInt(ledger.ledger_timestamp);
-    var ONE_DAY = 86400000000n;
-    var expiration = chainNow + (ONE_DAY * 7n); // 7 days
+    var ONE_DAY = BigInt("86400000000");
+    var expiration = chainNow + (ONE_DAY * BigInt(7)); // 7 days
+
+    // Calculate actual blob byte size from base64
+    var base64Data = b64.replace(/^data:[^;]+;base64,/, "");
+    var blobByteSize = Math.floor(base64Data.length * 3 / 4);
 
     // Build register_blob payload
+    // Args: blob_name, expiration_micros, commitment(32 zero bytes), chunkset_count, blob_size, payment_tier_id, encoding_u8
     var payload = {
       type: "entry_function_payload",
       function: CONTRACT + "::blob_metadata::register_blob",
@@ -1285,9 +1290,9 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
       arguments: [
         fn,
         expiration.toString(),
-        "0000000000000000000000000000000000000000000000000000000000000000",
+        Array(32).fill(0),
         "1",
-        b64.length.toString(),
+        blobByteSize.toString(),
         "0",
         0
       ]
