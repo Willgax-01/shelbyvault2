@@ -1278,31 +1278,49 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
     var expiration = chainNow + (ONE_DAY * 7n); // 7 days
 
     // Build register_blob payload
+    // All arguments must be strings for Aptos wallet BCS serialization
     var payload = {
       type: "entry_function_payload",
       function: CONTRACT + "::blob_metadata::register_blob",
       type_arguments: [],
       arguments: [
-        fn,
-        expiration.toString(),
-        "0000000000000000000000000000000000000000000000000000000000000000",
-        "1",
-        b64.length.toString(),
-        "0",
-        0
+        fn,                            // blob_name: String
+        expiration.toString(),         // expiration: u64
+        "0000000000000000000000000000000000000000000000000000000000000000", // root_hash: vector<u8> as hex
+        "1",                           // shard_count: u64
+        b64.length.toString(),         // size: u64
+        "0",                           // encoding: u8
+        "0"                            // compression: u8 — was integer 0, now string
       ]
     };
 
     addLog("info", "Petra popup opening — please approve...");
 
-    // Sign transaction — legacy or AIP-62
+    // Sign transaction via Petra AIP-62
     var w = petraWallet || findPetra();
     if (!w) throw new Error("Wallet not connected");
     var sf = w.features["aptos:signAndSubmitTransaction"];
     var sfn = resolveFn(sf, "signAndSubmitTransaction");
     if (!sfn) throw new Error("signAndSubmitTransaction not available");
-    var txR = await sfn({ payload: payload });
-    txHash = txR.hash || (txR.output && txR.output.hash);
+
+    // Petra v5 AIP-62: pass payload directly as the argument (not wrapped in {payload:...})
+    // The function signature is signAndSubmitTransaction(input: AptosSignAndSubmitTransactionInput)
+    // where input has a .payload property — BUT Petra's implementation reads args differently.
+    // Try wrapped first, fall back to direct if Petra rejects.
+    var txR;
+    try {
+      txR = await sfn({ payload: payload });
+    } catch(wrapErr) {
+      // Some Petra builds want the payload directly
+      txR = await sfn(payload);
+    }
+    // Petra returns {args: {hash}, status:'Approved'} or {hash} or {output:{hash}}
+    txHash = (txR && txR.hash)
+      ? txR.hash
+      : (txR && txR.args && txR.args.hash)
+        ? txR.args.hash
+        : (txR && txR.output && txR.output.hash)
+          ? txR.output.hash : null;
     addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
   } catch(e) {
     var msg = e.message || "";
