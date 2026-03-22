@@ -631,22 +631,15 @@ function initMatrix() {
 // WALLET - AIP-62 Standard
 var petraWallet = null;
 
-function getAptosWalletsList() {
-  try {
-    if (typeof getAptosWallets === "function") {
-      var result = getAptosWallets();
-      return (result && result.aptosWallets) ? Array.from(result.aptosWallets) : [];
-    }
-  } catch(e) {}
-  return [];
+function findPetra() {
+  if (typeof window.petra !== "undefined") return { _type: "petra" };
+  if (typeof window.aptos !== "undefined") return { _type: "aptos" };
+  return null;
 }
 
-function findPetra() {
-  var wallets = getAptosWalletsList();
-  for (var i = 0; i < wallets.length; i++) {
-    if (wallets[i].name && wallets[i].name.toLowerCase().indexOf("petra") > -1) return wallets[i];
-  }
-  return null;
+function getPetraAPI() {
+  if (!petraWallet) return null;
+  return petraWallet._type === "aptos" ? window.aptos : window.petra;
 }
 
 async function connectWallet() {
@@ -659,12 +652,12 @@ async function connectWallet() {
   try {
     btn.disabled = true;
     btn.textContent = "Connecting...";
-    var feature = petraWallet.features["aptos:connect"];
-    if (!feature) throw new Error("Wallet missing connect feature");
-    var result = await feature.connect();
-    var accounts = result.accounts || [];
-    if (!accounts.length) throw new Error("No accounts returned");
-    walletAddress = accounts[0].address.toString();
+    var w = getPetraAPI();
+    if (!w) throw new Error("Petra API not found");
+    var result = await w.connect();
+    walletAddress = result.address || (result.accounts && result.accounts[0] && result.accounts[0].address) || "";
+    if (typeof walletAddress === "object") walletAddress = walletAddress.toString();
+    if (!walletAddress) throw new Error("No address returned");
     walletConnected = true;
     onWalletConnected();
   } catch(e) {
@@ -692,9 +685,8 @@ function onWalletConnected() {
 
 async function disconnectWallet() {
   try {
-    if (petraWallet && petraWallet.features["aptos:disconnect"]) {
-      await petraWallet.features["aptos:disconnect"].disconnect();
-    }
+    var wd = getPetraAPI();
+    if (wd && wd.disconnect) await wd.disconnect();
   } catch(e) {}
   walletAddress = null; walletConnected = false; petraWallet = null;
   var walletBtn = document.getElementById("walletBtn");
@@ -710,19 +702,31 @@ async function checkWalletOnLoad() {
   try {
     petraWallet = findPetra();
     if (!petraWallet) return;
-    var feat = petraWallet.features["aptos:account"];
-    if (feat) {
-      var acc = await feat.account();
-      if (acc && acc.address) {
-        walletAddress = acc.address.toString();
-        walletConnected = true;
-        onWalletConnected();
-      }
+    var w = getPetraAPI();
+    if (!w) return;
+    var isConn = await w.isConnected();
+    if (isConn) {
+      var acc = await w.account();
+      walletAddress = acc.address;
+      if (typeof walletAddress === "object") walletAddress = walletAddress.toString();
+      walletConnected = true;
+      onWalletConnected();
     }
   } catch(e) {}
 }
 
-function updatePetraBtn() { pollForWallet(); }
+function updatePetraBtn() {
+  petraWallet = findPetra();
+  var btn = document.getElementById("connectPetraBtn");
+  var msg = document.getElementById("noPetraMsg");
+  if (!petraWallet) {
+    if (btn) btn.textContent = "Install Petra Wallet";
+    if (msg) msg.style.display = "block";
+  } else {
+    if (btn) btn.textContent = "💰 Connect Petra Wallet";
+    if (msg) msg.style.display = "none";
+  }
+}
 
 // NAV
 document.querySelectorAll("[data-panel]").forEach(function(el) {
@@ -1147,19 +1151,13 @@ async function signAndStore(b64, fn, name, content, tags, walletAddress, btn) {
 
     // Sign via Petra AIP-62
     addLog("info", "Petra popup opening — please approve...");
-    var signFeature = petraWallet && petraWallet.features && petraWallet.features["aptos:signAndSubmitTransaction"];
-    if (signFeature) {
-      var txResult = await signFeature.signAndSubmitTransaction({ payload: payload });
-      txHash = txResult.hash || (txResult.output && txResult.output.hash);
-      addLog("ok", "TX submitted: " + (txHash ? txHash.slice(0,16) + "..." : "pending"));
-    } else if (petraWallet && petraWallet._legacy) {
-      // Legacy fallback
-      var w = petraWallet._aptos ? window.aptos : window.petra;
-      var txResult = await w.signAndSubmitTransaction(payload);
+    var w2 = getPetraAPI();
+    if (w2 && w2.signAndSubmitTransaction) {
+      var txResult = await w2.signAndSubmitTransaction(payload);
       txHash = txResult.hash;
       addLog("ok", "TX submitted: " + txHash.slice(0,16) + "...");
     } else {
-      addLog("warn", "Wallet signing unavailable, storing in demo mode");
+      addLog("warn", "No wallet signer — storing in demo mode");
     }
   } catch(e) {
     if (e.message && (e.message.indexOf("reject") > -1 || e.message.indexOf("cancel") > -1 || e.message.indexOf("User") > -1)) {
@@ -1224,23 +1222,7 @@ updateCounts();
 buildDynFields();
 // Poll for wallet — extensions can take 1-3s to inject
 var walletCheckCount = 0;
-function pollForWallet() {
-  walletCheckCount++;
-  var found = findPetra();
-  var btn = document.getElementById("connectPetraBtn");
-  if (found) {
-    if (btn) btn.textContent = "💰 Connect Petra Wallet";
-    var msg = document.getElementById("noPetraMsg");
-    if (msg) msg.style.display = "none";
-    checkWalletOnLoad();
-  } else if (walletCheckCount < 10) {
-    setTimeout(pollForWallet, 500);
-  } else {
-    if (btn) btn.textContent = "Install Petra Wallet";
-    var msg2 = document.getElementById("noPetraMsg");
-    if (msg2) msg2.style.display = "block";
-  }
-}
+
 // Start polling after 500ms
 setTimeout(pollForWallet, 500);
 // Also listen for wallet registration events
@@ -1248,7 +1230,6 @@ window.addEventListener("aptos:wallet-registered", function() {
   pollForWallet();
 });
 </script>
-<script src="https://unpkg.com/@aptos-labs/wallet-standard@latest/dist/index.global.js"></script>
 <script src="https://js.puter.com/v2/" defer></script>
 </body>
 </html>
